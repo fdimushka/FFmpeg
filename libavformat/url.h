@@ -44,7 +44,7 @@ typedef struct URLContext {
     int is_streamed;            /**< true if streamed (no seek possible), default = false */
     int is_connected;
     AVIOInterruptCB interrupt_callback;
-    AVIOInterface io_interface;
+    AVIONetAdapter io_adapter;
     AVIOOpenCB open_callback;
     int64_t rw_timeout;         /**< maximum time to wait for (network) read/write operation completion, in mcs */
     const char *protocol_whitelist;

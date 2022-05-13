@@ -526,8 +526,8 @@ int ff_connect_parallel(struct addrinfo *addrs, int timeout_ms_per_address,
 
 int ff_recv(URLContext *h, int fd, void *buf, size_t buf_size, int flags)
 {
-    if(h->io_interface.recv) {
-        return h->io_interface.recv(buf, buf_size, flags, h->open_callback.opaque);
+    if(h->io_adapter.recv) {
+        return h->io_adapter.recv(buf, buf_size, flags, h->open_callback.opaque);
     }else{
         return recv(fd, buf, buf_size, flags);
     }
@@ -535,8 +535,8 @@ int ff_recv(URLContext *h, int fd, void *buf, size_t buf_size, int flags)
 
 int ff_send(URLContext *h, int fd, const void *buf, size_t buf_size, int flags)
 {
-    if(h->io_interface.send) {
-        return h->io_interface.send(buf, buf_size, flags, h->open_callback.opaque);
+    if(h->io_adapter.send) {
+        return h->io_adapter.send(buf, buf_size, flags, h->open_callback.opaque);
     }else{
         return send(fd, buf, buf_size, flags);
     }
@@ -544,8 +544,8 @@ int ff_send(URLContext *h, int fd, const void *buf, size_t buf_size, int flags)
 
 void ff_close(URLContext *h, int fd)
 {
-    if(h->io_interface.close) {
-        h->io_interface.close(h->open_callback.opaque);
+    if(h->io_adapter.close) {
+        h->io_adapter.close(h->open_callback.opaque);
     }else{
         closesocket(fd);
     }

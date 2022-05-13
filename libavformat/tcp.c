@@ -102,11 +102,11 @@ static void customize_fd(void *ctx, int fd)
 }
 
 
-static void open_io_interface(const TCPContext *ctx, AVIOInterface *interface, const AVIOOpenCB* open_cb)
+static void open_user_io(const TCPContext *ctx, AVIONetAdapter *adapter, const AVIOOpenCB* open_cb)
 {
-    avio_init_interface(interface, NULL, NULL, NULL);
+    avio_init_net_adapter(adapter, NULL, NULL, NULL);
     if (open_cb && open_cb->callback)
-        open_cb->callback(ctx->fd, interface, open_cb->opaque);
+        open_cb->callback(ctx->fd, adapter, open_cb->opaque);
 };
 
 
@@ -217,7 +217,7 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     h->is_streamed = 1;
     s->fd = fd;
 
-    open_io_interface(s, &h->io_interface, &h->open_callback);
+    open_user_io(s, &h->io_adapter, &h->open_callback);
 
     freeaddrinfo(ai);
     return 0;

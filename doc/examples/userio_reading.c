@@ -44,10 +44,10 @@ static void close_cb(void *opaque) {
 }
 
 
-static void open_cb(int fd, AVIOInterface *interface, void *opaque) {
+static void open_cb(int fd, AVIONetAdapter *adapter, void *opaque) {
     io_network_context *ctx = (io_network_context*)opaque;
     ctx->fd = fd;
-    avio_init_interface(interface, &recv_cb, &send_cb, &close_cb);
+    avio_init_net_adapter(adapter, &recv_cb, &send_cb, &close_cb);
 }
 
 

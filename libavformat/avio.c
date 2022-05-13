@@ -607,7 +607,7 @@ void avio_free_directory_entry(AVIODirEntry **entry)
 }
 
 
-void avio_init_interface(AVIOInterface *in,
+void avio_init_net_adapter(AVIONetAdapter *in,
                          int (*recv)(void *buf, size_t buf_size, int flags, void *opaque),
                          int (*send)(const void *buf, size_t buf_size, int flags, void *opaque),
                          void (*close)(void *opaque))
