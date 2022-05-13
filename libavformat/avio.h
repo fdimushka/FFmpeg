@@ -61,6 +61,31 @@ typedef struct AVIOInterruptCB {
     void *opaque;
 } AVIOInterruptCB;
 
+
+/**
+ * Custom network adapter struct.
+ * @param recv callback will be used instead syscall recv
+ * @param send callback will be used instead syscall send
+ * @param close callback will be used instead syscall close or closesocket
+ */
+typedef struct AVIONetAdapter {
+    int     (*recv)(void *buf, size_t buf_size, int flags, void *opaque);
+    int     (*send)(const void *buf, size_t buf_size, int flags, void *opaque);
+    void     (*close)(void *opaque);
+} AVIONetAdapter;
+
+
+/**
+ * Callback to notify user about a new network connection.
+ * User can initialize adapter for replace network r/w syscall to custom network methods for current AVFormatContext.
+ */
+typedef struct AVIOOpenCB {
+    void (*callback)(int fd, AVIONetAdapter *adapter, void *opaque);
+    void *opaque;
+} AVIOOpenCB;
+
+
+
 /**
  * Directory entry types.
  */
@@ -317,6 +342,7 @@ typedef struct AVIOContext {
      */
     int64_t bytes_written;
 } AVIOContext;
+
 
 /**
  * Return the name of the protocol that will handle the passed URL.
@@ -833,4 +859,16 @@ int avio_accept(AVIOContext *s, AVIOContext **c);
  *           < 0 for an AVERROR code
  */
 int avio_handshake(AVIOContext *c);
+
+
+/**
+ * Initializing a custom network adapter.
+ * @param recv callback will be used instead syscall recv
+ * @param send callback will be used instead syscall send
+ * @param close callback will be used instead syscall close or closesocket
+ */
+void avio_init_net_adapter(AVIONetAdapter *in,
+                         int (*recv)(void *buf, size_t buf_size, int flags, void *opaque),
+                         int (*send)(const void *buf, size_t buf_size, int flags, void *opaque),
+                         void (*close)(void *opaque));
 #endif /* AVFORMAT_AVIO_H */

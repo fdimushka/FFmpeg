@@ -1521,7 +1521,7 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
                 /* we will use two ports per rtp stream (rtp and rtcp) */
                 j += 2;
                 err = ffurl_open_whitelist(&rtsp_st->rtp_handle, buf, AVIO_FLAG_READ_WRITE,
-                                 &s->interrupt_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
+                                 &s->interrupt_callback, &s->open_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
 
                 av_dict_free(&opts);
 
@@ -1676,7 +1676,7 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
             ff_url_join(url, sizeof(url), "rtp", NULL, namebuf,
                         port, "%s", optbuf);
             err = ffurl_open_whitelist(&rtsp_st->rtp_handle, url, AVIO_FLAG_READ_WRITE,
-                           &s->interrupt_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
+                           &s->interrupt_callback, &s->open_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
             av_dict_free(&opts);
 
             if (err < 0) {
@@ -1810,7 +1810,7 @@ redirect:
 
         /* GET requests */
         if (ffurl_alloc(&rt->rtsp_hd, httpname, AVIO_FLAG_READ,
-                        &s->interrupt_callback) < 0) {
+                        &s->interrupt_callback, &s->open_callback) < 0) {
             err = AVERROR(EIO);
             goto fail;
         }
@@ -1841,7 +1841,7 @@ redirect:
 
         /* POST requests */
         if (ffurl_alloc(&rt->rtsp_hd_out, httpname, AVIO_FLAG_WRITE,
-                        &s->interrupt_callback) < 0 ) {
+                        &s->interrupt_callback, &s->open_callback) < 0 ) {
             err = AVERROR(EIO);
             goto fail;
         }
@@ -1891,7 +1891,7 @@ redirect:
                     host, port,
                     "?timeout=%"PRId64, rt->stimeout);
         if ((ret = ffurl_open_whitelist(&rt->rtsp_hd, tcpname, AVIO_FLAG_READ_WRITE,
-                       &s->interrupt_callback, NULL, s->protocol_whitelist, s->protocol_blacklist, NULL)) < 0) {
+                       &s->interrupt_callback, &s->open_callback, NULL, s->protocol_whitelist, s->protocol_blacklist, NULL)) < 0) {
             err = ret;
             goto fail;
         }
@@ -2448,7 +2448,7 @@ static int sdp_read_header(AVFormatContext *s)
                                 rtsp_st->nb_exclude_source_addrs,
                                 rtsp_st->exclude_source_addrs);
             err = ffurl_open_whitelist(&rtsp_st->rtp_handle, url, AVIO_FLAG_READ,
-                           &s->interrupt_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
+                           &s->interrupt_callback, &s->open_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
 
             av_dict_free(&opts);
 
@@ -2522,7 +2522,7 @@ static int rtp_read_header(AVFormatContext *s)
 
     opts = map_to_opts(rt);
     ret = ffurl_open_whitelist(&in, s->url, AVIO_FLAG_READ,
-                     &s->interrupt_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
+                     &s->interrupt_callback, &s->open_callback, &opts, s->protocol_whitelist, s->protocol_blacklist, NULL);
     av_dict_free(&opts);
     if (ret)
         goto fail;

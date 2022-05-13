@@ -168,7 +168,7 @@ static int icecast_open(URLContext *h, const char *uri, int flags)
                 s->tls ? "https" : "http",
                 auth, host, port, "%s", path);
     // Finally open http proto handler
-    ret = ffurl_open_whitelist(&s->hd, h_url, AVIO_FLAG_READ_WRITE, NULL,
+    ret = ffurl_open_whitelist(&s->hd, h_url, AVIO_FLAG_READ_WRITE, NULL, &h->open_callback,
                                &opt_dict, h->protocol_whitelist, h->protocol_blacklist, h);
 
 cleanup:

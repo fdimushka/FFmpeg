@@ -92,7 +92,7 @@ static int cache_open(URLContext *h, const char *arg, int flags, AVDictionary **
     else
         c->filename = buffername;
 
-    return ffurl_open_whitelist(&c->inner, arg, flags, &h->interrupt_callback,
+    return ffurl_open_whitelist(&c->inner, arg, flags, &h->interrupt_callback, &h->open_callback,
                                 options, h->protocol_whitelist, h->protocol_blacklist, h);
 }
 

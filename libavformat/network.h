@@ -338,4 +338,13 @@ int ff_connect_parallel(struct addrinfo *addrs, int timeout_ms_per_address,
                         int parallel, URLContext *h, int *fd,
                         void (*customize_fd)(void *, int), void *customize_ctx);
 
+
+int ff_recv(URLContext *h, int fd, void *buf, size_t buf_size, int flags);
+
+
+int ff_send(URLContext *h, int fd, const void *buf, size_t buf_size, int flags);
+
+
+void ff_close(URLContext *h, int fd);
+
 #endif /* AVFORMAT_NETWORK_H */

@@ -73,7 +73,8 @@ const AVClass ffurl_context_class = {
 
 static int url_alloc_for_protocol(URLContext **puc, const URLProtocol *up,
                                   const char *filename, int flags,
-                                  const AVIOInterruptCB *int_cb)
+                                  const AVIOInterruptCB *int_cb,
+                                  const AVIOOpenCB* open_cb)
 {
     URLContext *uc;
     int err;
@@ -148,6 +149,9 @@ static int url_alloc_for_protocol(URLContext **puc, const URLProtocol *up,
     }
     if (int_cb)
         uc->interrupt_callback = *int_cb;
+
+    if (open_cb)
+        uc->open_callback = *open_cb;
 
     *puc = uc;
     return 0;
@@ -291,26 +295,26 @@ static const struct URLProtocol *url_find_protocol(const char *filename)
 }
 
 int ffurl_alloc(URLContext **puc, const char *filename, int flags,
-                const AVIOInterruptCB *int_cb)
+                const AVIOInterruptCB *int_cb, const AVIOOpenCB* open_cb)
 {
     const URLProtocol *p = NULL;
 
     p = url_find_protocol(filename);
     if (p)
-       return url_alloc_for_protocol(puc, p, filename, flags, int_cb);
+       return url_alloc_for_protocol(puc, p, filename, flags, int_cb, open_cb);
 
     *puc = NULL;
     return AVERROR_PROTOCOL_NOT_FOUND;
 }
 
 int ffurl_open_whitelist(URLContext **puc, const char *filename, int flags,
-                         const AVIOInterruptCB *int_cb, AVDictionary **options,
+                         const AVIOInterruptCB *int_cb, const AVIOOpenCB* open_cb, AVDictionary **options,
                          const char *whitelist, const char* blacklist,
                          URLContext *parent)
 {
     AVDictionary *tmp_opts = NULL;
     AVDictionaryEntry *e;
-    int ret = ffurl_alloc(puc, filename, flags, int_cb);
+    int ret = ffurl_alloc(puc, filename, flags, int_cb, open_cb);
     if (ret < 0)
         return ret;
     if (parent) {
@@ -474,7 +478,7 @@ const char *avio_find_protocol_name(const char *url)
 int avio_check(const char *url, int flags)
 {
     URLContext *h;
-    int ret = ffurl_alloc(&h, url, flags, NULL);
+    int ret = ffurl_alloc(&h, url, flags, NULL, NULL);
     if (ret < 0)
         return ret;
 
@@ -493,10 +497,10 @@ int avio_check(const char *url, int flags)
 int ffurl_move(const char *url_src, const char *url_dst)
 {
     URLContext *h_src, *h_dst;
-    int ret = ffurl_alloc(&h_src, url_src, AVIO_FLAG_READ_WRITE, NULL);
+    int ret = ffurl_alloc(&h_src, url_src, AVIO_FLAG_READ_WRITE, NULL, NULL);
     if (ret < 0)
         return ret;
-    ret = ffurl_alloc(&h_dst, url_dst, AVIO_FLAG_WRITE, NULL);
+    ret = ffurl_alloc(&h_dst, url_dst, AVIO_FLAG_WRITE, NULL, NULL);
     if (ret < 0) {
         ffurl_close(h_src);
         return ret;
@@ -515,7 +519,7 @@ int ffurl_move(const char *url_src, const char *url_dst)
 int ffurl_delete(const char *url)
 {
     URLContext *h;
-    int ret = ffurl_alloc(&h, url, AVIO_FLAG_WRITE, NULL);
+    int ret = ffurl_alloc(&h, url, AVIO_FLAG_WRITE, NULL, NULL);
     if (ret < 0)
         return ret;
 
@@ -541,7 +545,7 @@ int avio_open_dir(AVIODirContext **s, const char *url, AVDictionary **options)
         goto fail;
     }
 
-    if ((ret = ffurl_alloc(&h, url, AVIO_FLAG_READ, NULL)) < 0)
+    if ((ret = ffurl_alloc(&h, url, AVIO_FLAG_READ, NULL, NULL)) < 0)
         goto fail;
 
     if (h->prot->url_open_dir && h->prot->url_read_dir && h->prot->url_close_dir) {
@@ -600,6 +604,17 @@ void avio_free_directory_entry(AVIODirEntry **entry)
         return;
     av_free((*entry)->name);
     av_freep(entry);
+}
+
+
+void avio_init_net_adapter(AVIONetAdapter *in,
+                         int (*recv)(void *buf, size_t buf_size, int flags, void *opaque),
+                         int (*send)(const void *buf, size_t buf_size, int flags, void *opaque),
+                         void (*close)(void *opaque))
+{
+    in->recv = recv;
+    in->send = send;
+    in->close = close;
 }
 
 int64_t ffurl_size(URLContext *h)

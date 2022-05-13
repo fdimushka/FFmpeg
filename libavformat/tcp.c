@@ -42,6 +42,7 @@ typedef struct TCPContext {
     int recv_buffer_size;
     int send_buffer_size;
     int tcp_nodelay;
+    void *handler;
 #if !HAVE_WINSOCK2_H
     int tcp_mss;
 #endif /* !HAVE_WINSOCK2_H */
@@ -69,6 +70,7 @@ static const AVClass tcp_class = {
     .option     = options,
     .version    = LIBAVUTIL_VERSION_INT,
 };
+
 
 static void customize_fd(void *ctx, int fd)
 {
@@ -98,6 +100,15 @@ static void customize_fd(void *ctx, int fd)
     }
 #endif /* !HAVE_WINSOCK2_H */
 }
+
+
+static void open_user_io(const TCPContext *ctx, AVIONetAdapter *adapter, const AVIOOpenCB* open_cb)
+{
+    avio_init_net_adapter(adapter, NULL, NULL, NULL);
+    if (open_cb && open_cb->callback)
+        open_cb->callback(ctx->fd, adapter, open_cb->opaque);
+};
+
 
 /* return non zero if error */
 static int tcp_open(URLContext *h, const char *uri, int flags)
@@ -206,6 +217,8 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     h->is_streamed = 1;
     s->fd = fd;
 
+    open_user_io(s, &h->io_adapter, &h->open_callback);
+
     freeaddrinfo(ai);
     return 0;
 
@@ -222,7 +235,7 @@ static int tcp_accept(URLContext *s, URLContext **c)
     TCPContext *cc;
     int ret;
     av_assert0(sc->listen);
-    if ((ret = ffurl_alloc(c, s->filename, s->flags, &s->interrupt_callback)) < 0)
+    if ((ret = ffurl_alloc(c, s->filename, s->flags, &s->interrupt_callback, &s->open_callback)) < 0)
         return ret;
     cc = (*c)->priv_data;
     ret = ff_accept(sc->fd, sc->listen_timeout, s);
@@ -244,9 +257,12 @@ static int tcp_read(URLContext *h, uint8_t *buf, int size)
         if (ret)
             return ret;
     }
-    ret = recv(s->fd, buf, size, 0);
+
+    ret = ff_recv(h, s->fd, buf, size, 0);
+
     if (ret == 0)
         return AVERROR_EOF;
+
     return ret < 0 ? ff_neterrno() : ret;
 }
 
@@ -260,7 +276,10 @@ static int tcp_write(URLContext *h, const uint8_t *buf, int size)
         if (ret)
             return ret;
     }
-    ret = send(s->fd, buf, size, MSG_NOSIGNAL);
+    //ret = send(s->fd, buf, size, MSG_NOSIGNAL);
+
+    ret = ff_send(h, s->fd, buf, size, MSG_NOSIGNAL);
+
     return ret < 0 ? ff_neterrno() : ret;
 }
 
@@ -283,7 +302,7 @@ static int tcp_shutdown(URLContext *h, int flags)
 static int tcp_close(URLContext *h)
 {
     TCPContext *s = h->priv_data;
-    closesocket(s->fd);
+    ff_close(h, s->fd);
     return 0;
 }
 

@@ -70,7 +70,7 @@ static int md5_close(URLContext *h)
 
     if (*filename) {
         err = ffurl_open_whitelist(&out, filename, AVIO_FLAG_WRITE,
-                                   &h->interrupt_callback, NULL,
+                                   &h->interrupt_callback, &h->open_callback, NULL,
                                    h->protocol_whitelist, h->protocol_blacklist, h);
         if (err)
             return err;
