@@ -61,6 +61,21 @@ typedef struct AVIOInterruptCB {
     void *opaque;
 } AVIOInterruptCB;
 
+
+typedef struct AVIOInterface {
+    int     (*recv)(void *buf, size_t buf_size, int flags, void *opaque);
+    int     (*send)(const void *buf, size_t buf_size, int flags, void *opaque);
+    void     (*close)(void *opaque);
+} AVIOInterface;
+
+
+typedef struct AVIOOpenCB {
+    void (*callback)(int fd, AVIOInterface *interface, void *opaque);
+    void *opaque;
+} AVIOOpenCB;
+
+
+
 /**
  * Directory entry types.
  */
@@ -317,6 +332,7 @@ typedef struct AVIOContext {
      */
     int64_t bytes_written;
 } AVIOContext;
+
 
 /**
  * Return the name of the protocol that will handle the passed URL.
@@ -833,4 +849,10 @@ int avio_accept(AVIOContext *s, AVIOContext **c);
  *           < 0 for an AVERROR code
  */
 int avio_handshake(AVIOContext *c);
+
+
+void avio_init_interface(AVIOInterface *in,
+                         int (*recv)(void *buf, size_t buf_size, int flags, void *opaque),
+                         int (*send)(const void *buf, size_t buf_size, int flags, void *opaque),
+                         void (*close)(void *opaque));
 #endif /* AVFORMAT_AVIO_H */

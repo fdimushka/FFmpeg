@@ -1038,10 +1038,14 @@ static int udp_read(URLContext *h, uint8_t *buf, int size)
             return ret;
     }
     ret = recvfrom(s->udp_fd, buf, size, 0, (struct sockaddr *)&addr, &addr_len);
+
+    printf("udp bytes read: %d\n", size);
+
     if (ret < 0)
         return ff_neterrno();
     if (ff_ip_check_source_lists(&addr, &s->filters))
         return AVERROR(EINTR);
+
     return ret;
 }
 

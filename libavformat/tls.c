@@ -105,6 +105,6 @@ int ff_tls_open_underlying(TLSShared *c, URLContext *parent, const char *uri, AV
     }
 
     return ffurl_open_whitelist(&c->tcp, buf, AVIO_FLAG_READ_WRITE,
-                                &parent->interrupt_callback, options,
+                                &parent->interrupt_callback, &parent->open_callback, options,
                                 parent->protocol_whitelist, parent->protocol_blacklist, parent);
 }

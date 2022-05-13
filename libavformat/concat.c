@@ -100,7 +100,8 @@ static av_cold int concat_open(URLContext *h, const char *uri, int flags)
 
         /* creating URLContext */
         err = ffurl_open_whitelist(&uc, node_uri, flags,
-                                   &h->interrupt_callback, NULL, h->protocol_whitelist, h->protocol_blacklist, h);
+                                   &h->interrupt_callback, &h->open_callback,
+                                   NULL, h->protocol_whitelist, h->protocol_blacklist, h);
         if (err < 0)
             break;
 
@@ -268,7 +269,8 @@ static av_cold int concatf_open(URLContext *h, const char *uri, int flags)
 
         /* creating URLContext */
         err = ffurl_open_whitelist(&uc, node_uri, flags,
-                                   &h->interrupt_callback, NULL, h->protocol_whitelist, h->protocol_blacklist, h);
+                                   &h->interrupt_callback, &h->open_callback,
+                                   NULL, h->protocol_whitelist, h->protocol_blacklist, h);
         av_free(node_uri);
         if (err < 0)
             break;
