@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     io_network_context io_ctx;
     AVFormatContext *ifmt_ctx = NULL;
     AVPacket *pkt = NULL;
-    const char *in_filename = "rtsp://oper:2m9846gUyB@10.1.0.17:554/Streaming/Channels/101?transportmode=unicast&profile=Profile_1";
+    const char *in_filename = "rtsp://HOST:PORT";
     AVDictionary *opts = NULL;
     av_dict_set(&opts, "rtsp_transport", "tcp", 0);
     int ret = 0;
