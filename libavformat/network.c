@@ -529,6 +529,12 @@ int ff_recv(URLContext *h, int fd, void *buf, size_t buf_size, int flags)
     if(h->io_adapter.recv) {
         return h->io_adapter.recv(buf, buf_size, flags, h->open_callback.opaque);
     }else{
+        if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
+            int ret = ff_network_wait_fd_timeout(fd, 0, h->rw_timeout, &h->interrupt_callback);
+            if (ret)
+                return ret;
+        }
+
         return recv(fd, buf, buf_size, flags);
     }
 }
@@ -538,6 +544,13 @@ int ff_send(URLContext *h, int fd, const void *buf, size_t buf_size, int flags)
     if(h->io_adapter.send) {
         return h->io_adapter.send(buf, buf_size, flags, h->open_callback.opaque);
     }else{
+
+        if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
+            int ret = ff_network_wait_fd_timeout(fd, 1, h->rw_timeout, &h->interrupt_callback);
+            if (ret)
+                return ret;
+        }
+
         return send(fd, buf, buf_size, flags);
     }
 }

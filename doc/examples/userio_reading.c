@@ -80,8 +80,6 @@ int main(int argc, char **argv)
         goto end;
     }
 
-
-
     if ((ret = avformat_find_stream_info(ifmt_ctx, 0)) < 0) {
         fprintf(stderr, "Failed to retrieve input stream information");
         goto end;
@@ -89,13 +87,14 @@ int main(int argc, char **argv)
 
     av_dump_format(ifmt_ctx, 0, in_filename, 0);
 
-//    while (1) {
-//        ret = av_read_frame(ifmt_ctx, pkt);
-//        if (ret < 0)
-//            break;
-//
-//        log_packet(ifmt_ctx, pkt, "in");
-//    }
+
+    while (1) {
+        ret = av_read_frame(ifmt_ctx, pkt);
+        if (ret < 0)
+            break;
+
+        log_packet(ifmt_ctx, pkt, "in");
+    }
 
     end:
     av_packet_free(&pkt);

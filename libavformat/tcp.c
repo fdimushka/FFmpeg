@@ -250,15 +250,7 @@ static int tcp_accept(URLContext *s, URLContext **c)
 static int tcp_read(URLContext *h, uint8_t *buf, int size)
 {
     TCPContext *s = h->priv_data;
-    int ret;
-
-    if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
-        ret = ff_network_wait_fd_timeout(s->fd, 0, h->rw_timeout, &h->interrupt_callback);
-        if (ret)
-            return ret;
-    }
-
-    ret = ff_recv(h, s->fd, buf, size, 0);
+    int ret = ff_recv(h, s->fd, buf, size, 0);
 
     if (ret == 0)
         return AVERROR_EOF;
@@ -269,16 +261,7 @@ static int tcp_read(URLContext *h, uint8_t *buf, int size)
 static int tcp_write(URLContext *h, const uint8_t *buf, int size)
 {
     TCPContext *s = h->priv_data;
-    int ret;
-
-    if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
-        ret = ff_network_wait_fd_timeout(s->fd, 1, h->rw_timeout, &h->interrupt_callback);
-        if (ret)
-            return ret;
-    }
-    //ret = send(s->fd, buf, size, MSG_NOSIGNAL);
-
-    ret = ff_send(h, s->fd, buf, size, MSG_NOSIGNAL);
+    int ret = ff_send(h, s->fd, buf, size, MSG_NOSIGNAL);
 
     return ret < 0 ? ff_neterrno() : ret;
 }

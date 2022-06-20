@@ -345,3 +345,14 @@ const char *av_disposition_to_string(int disposition)
 
     return NULL;
 }
+
+
+void avio_init_net_adapter(AVIONetAdapter *in,
+                           int (*recv)(void *buf, size_t buf_size, int flags, void *opaque),
+                           int (*send)(const void *buf, size_t buf_size, int flags, void *opaque),
+                           void (*close)(void *opaque))
+{
+    in->recv = recv;
+    in->send = send;
+    in->close = close;
+}

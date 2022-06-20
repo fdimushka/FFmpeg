@@ -410,6 +410,7 @@ static int rtp_read(URLContext *h, uint8_t *buf, int size)
                 *addr_lens[i] = sizeof(*addrs[i]);
                 len = recvfrom(p[i].fd, buf, size, 0,
                                 (struct sockaddr *)addrs[i], addr_lens[i]);
+
                 if (len < 0) {
                     if (ff_neterrno() == AVERROR(EAGAIN) ||
                         ff_neterrno() == AVERROR(EINTR))

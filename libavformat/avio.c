@@ -606,17 +606,6 @@ void avio_free_directory_entry(AVIODirEntry **entry)
     av_freep(entry);
 }
 
-
-void avio_init_net_adapter(AVIONetAdapter *in,
-                         int (*recv)(void *buf, size_t buf_size, int flags, void *opaque),
-                         int (*send)(const void *buf, size_t buf_size, int flags, void *opaque),
-                         void (*close)(void *opaque))
-{
-    in->recv = recv;
-    in->send = send;
-    in->close = close;
-}
-
 int64_t ffurl_size(URLContext *h)
 {
     int64_t pos, size;
