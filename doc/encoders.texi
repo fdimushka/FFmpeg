@@ -1271,6 +1271,55 @@ follows.
 
 A64 / Commodore 64 multicolor charset encoder. @code{a64_multi5} is extended with 5th color (colram).
 
+@section Cinepak
+
+Cinepak aka CVID encoder.
+Compatible with Windows 3.1 and vintage MacOS.
+
+@subsection Options
+
+@table @option
+@item g @var{integer}
+Keyframe interval.
+A keyframe is inserted at least every @code{-g} frames, sometimes sooner.
+
+@item q:v @var{integer}
+Quality factor. Lower is better. Higher gives lower bitrate.
+The following table lists bitrates when encoding akiyo_cif.y4m for various values of @code{-q:v} with @code{-g 100}:
+
+@table @option
+@item @code{-q:v 1} 1918 kb/s
+@item @code{-q:v 2} 1735 kb/s
+@item @code{-q:v 4} 1500 kb/s
+@item @code{-q:v 10} 1041 kb/s
+@item @code{-q:v 20} 826 kb/s
+@item @code{-q:v 40} 553 kb/s
+@item @code{-q:v 100} 394 kb/s
+@item @code{-q:v 200} 312 kb/s
+@item @code{-q:v 400} 266 kb/s
+@item @code{-q:v 1000} 237 kb/s
+@end table
+
+@item max_extra_cb_iterations @var{integer}
+Max extra codebook recalculation passes, more is better and slower.
+
+@item skip_empty_cb @var{boolean}
+Avoid wasting bytes, ignore vintage MacOS decoder.
+
+@item max_strips @var{integer}
+@itemx min_strips @var{integer}
+The minimum and maximum number of strips to use.
+Wider range sometimes improves quality.
+More strips is generally better quality but costs more bits.
+Fewer strips tend to yield more keyframes.
+Vintage compatible is 1..3.
+
+@item strip_number_adaptivity @var{integer}
+How much number of strips is allowed to change between frames.
+Higher is better but slower.
+
+@end table
+
 @section GIF
 
 GIF image/animation encoder.
@@ -3284,6 +3333,16 @@ Forcing I frames as IDR frames.
 For encoders set this flag to ON to reduce power consumption and GPU usage.
 @end table
 
+@subsection Runtime Options
+Following options can be used durning qsv encoding.
+
+@table @option
+@item @var{qsv_config_qp}
+Supported in h264_qsv and hevc_qsv.
+This option can be set in per-frame metadata. QP parameter can be dynamically
+changed when encoding in CQP mode.
+@end table
+
 @subsection H264 options
 These options are used by h264_qsv
 
@@ -3423,6 +3482,24 @@ Multi-Frame Mode.
 
 @item @var{repeat_pps}
 Repeat pps for every frame.
+
+@item @var{max_qp_i}
+Maximum video quantizer scale for I frame.
+
+@item @var{min_qp_i}
+Minimum video quantizer scale for I frame.
+
+@item @var{max_qp_p}
+Maximum video quantizer scale for P frame.
+
+@item @var{min_qp_p}
+Minimum video quantizer scale for P frame.
+
+@item @var{max_qp_b}
+Maximum video quantizer scale for B frame.
+
+@item @var{min_qp_b}
+Minimum video quantizer scale for B frame.
 @end table
 
 @subsection HEVC Options
@@ -3546,6 +3623,24 @@ range is [-63, 63] for 10 bit-depth or [-75, 75] for 12 bit-depth respectively.
 
 @item @var{int_ref_cycle_dist}
 Distance between the beginnings of the intra-refresh cycles in frames.
+
+@item @var{max_qp_i}
+Maximum video quantizer scale for I frame.
+
+@item @var{min_qp_i}
+Minimum video quantizer scale for I frame.
+
+@item @var{max_qp_p}
+Maximum video quantizer scale for P frame.
+
+@item @var{min_qp_p}
+Minimum video quantizer scale for P frame.
+
+@item @var{max_qp_b}
+Maximum video quantizer scale for B frame.
+
+@item @var{min_qp_b}
+Minimum video quantizer scale for B frame.
 @end table
 
 @subsection MPEG2 Options
@@ -3664,6 +3759,11 @@ Maximum processing parallelism. Increase this to improve single channel
 performance. This option doesn't work if driver doesn't implement vaSyncBuffer
 function. Please make sure there are enough hw_frames allocated if a large
 number of async_depth is used.
+
+@item max_frame_size
+Set the allowed max size in bytes for each frame. If the frame size exceeds
+the limitation, encoder will adjust the QP value to control the frame size.
+Invalid in CQP rate control mode.
 
 @item rc_mode
 Set the rate control mode to use.  A given driver may only support a subset of

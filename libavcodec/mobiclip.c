@@ -288,7 +288,7 @@ static av_cold void mobiclip_init_static(void)
                                  syms1, sizeof(*syms1), sizeof(*syms1),
                                  0, 0, 1 << MOBI_RL_VLC_BITS);
     for (int i = 0; i < 2; i++) {
-        static VLC_TYPE vlc_buf[2 * 16 << MOBI_MV_VLC_BITS][2];
+        static VLCElem vlc_buf[2 * 16 << MOBI_MV_VLC_BITS];
         for (int j = 0; j < 16; j++) {
             mv_vlc[i][j].table           = &vlc_buf[(16 * i + j) << MOBI_MV_VLC_BITS];
             mv_vlc[i][j].table_allocated = 1 << MOBI_MV_VLC_BITS;
@@ -330,7 +330,7 @@ static av_cold int mobiclip_init(AVCodecContext *avctx)
     return 0;
 }
 
-static int setup_qtables(AVCodecContext *avctx, int quantizer)
+static int setup_qtables(AVCodecContext *avctx, int64_t quantizer)
 {
     MobiClipContext *s = avctx->priv_data;
     int qx, qy;
@@ -1256,7 +1256,7 @@ static int mobiclip_decode(AVCodecContext *avctx, AVFrame *rframe,
         frame->key_frame = 0;
         s->dct_tab_idx = 0;
 
-        ret = setup_qtables(avctx, s->quantizer + get_se_golomb(gb));
+        ret = setup_qtables(avctx, s->quantizer + (int64_t)get_se_golomb(gb));
         if (ret < 0)
             return ret;
 

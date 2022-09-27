@@ -1088,7 +1088,7 @@ static int bink_decode_plane(BinkContext *c, AVFrame *frame, GetBitContext *gb,
         for (bx = 0; bx < bw; bx++, dst += 8, prev += 8) {
             blk = get_value(c, BINK_SRC_BLOCK_TYPES);
             // 16x16 block type on odd line means part of the already decoded block, so skip it
-            if ((by & 1) && blk == SCALED_BLOCK) {
+            if (((by & 1) || (bx & 1)) && blk == SCALED_BLOCK) {
                 bx++;
                 dst  += 8;
                 prev += 8;
@@ -1314,7 +1314,7 @@ static int decode_frame(AVCodecContext *avctx, AVFrame *frame,
 static av_cold void bink_init_vlcs(void)
 {
     for (int i = 0, offset = 0; i < 16; i++) {
-        static VLC_TYPE table[976][2];
+        static VLCElem table[976];
         const int maxbits = bink_tree_lens[i][15];
         bink_trees[i].table           = table + offset;
         bink_trees[i].table_allocated = 1 << maxbits;
