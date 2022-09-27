@@ -557,6 +557,22 @@ Set input gain level. Allowed range is from 0 to 1. Default value is 1.
 
 @item gains
 Set output gain for each band. Default value is 1 for all bands.
+
+@item precision
+Set which precision to use when processing samples.
+
+@table @option
+@item auto
+Auto pick internal sample format depending on other filters.
+
+@item float
+Always use single-floating point precision sample format.
+
+@item double
+Always use double-floating point precision sample format.
+@end table
+
+Default value is @code{auto}.
 @end table
 
 @subsection Examples
@@ -1639,6 +1655,22 @@ Allowed range is from @var{1} to @var{32}. Default is @var{1}.
 Set IR stream which will be used for convolution, starting from @var{0}, should always be
 lower than supplied value by @code{nbirs} option. Default is @var{0}.
 This option can be changed at runtime via @ref{commands}.
+
+@item precision
+Set which precision to use when processing samples.
+
+@table @option
+@item auto
+Auto pick internal sample format depending on other filters.
+
+@item float
+Always use single-floating point precision sample format.
+
+@item double
+Always use double-floating point precision sample format.
+@end table
+
+Default value is auto.
 @end table
 
 @subsection Examples
@@ -2178,13 +2210,6 @@ and @var{pan} audio filters support many formats). If the @var{amix}
 input has integer samples then @ref{aresample} will be automatically
 inserted to perform the conversion to float samples.
 
-For example
-@example
-ffmpeg -i INPUT1 -i INPUT2 -i INPUT3 -filter_complex amix=inputs=3:duration=first:dropout_transition=3 OUTPUT
-@end example
-will mix 3 input audio streams to a single output with the same duration as the
-first input and a dropout transition time of 3 seconds.
-
 It accepts the following parameters:
 @table @option
 
@@ -2211,14 +2236,36 @@ The transition time, in seconds, for volume renormalization when an input
 stream ends. The default value is 2 seconds.
 
 @item weights
-Specify weight of each input audio stream as sequence.
-Each weight is separated by space. By default all inputs have same weight.
+Specify weight of each input audio stream as a sequence of numbers separated
+by a space. If fewer weights are specified compared to number of inputs, the
+last weight is assigned to the remaining inputs.
+Default weight for each input is 1.
 
 @item normalize
 Always scale inputs instead of only doing summation of samples.
 Beware of heavy clipping if inputs are not normalized prior or after filtering
 by this filter if this option is disabled. By default is enabled.
 @end table
+
+@subsection Examples
+
+@itemize
+
+@item
+This will mix 3 input audio streams to a single output with the same duration as the
+first input and a dropout transition time of 3 seconds:
+@example
+ffmpeg -i INPUT1 -i INPUT2 -i INPUT3 -filter_complex amix=inputs=3:duration=first:dropout_transition=3 OUTPUT
+@end example
+
+@item
+This will mix one vocal and one music input audio stream to a single output with the same duration as the
+longest input. The music will have quarter the weight as the vocals, and the inputs are not normalized:
+@example
+ffmpeg -i VOCALS -i MUSIC -filter_complex amix=inputs=2:duration=longest:dropout_transition=0:weights="1 0.25":normalize=0 OUTPUT
+@end example
+
+@end itemize
 
 @subsection Commands
 
@@ -3131,15 +3178,18 @@ The filter accepts the following options:
 @table @option
 @item dry
 Set dry gain, how much of original signal is kept. Allowed range is from 0 to 1.
-Default value is 0.7.
+Default value is 1.0.
 
 @item wet
 Set wet gain, how much of filtered signal is kept. Allowed range is from 0 to 1.
-Default value is 0.7.
+Default value is 1.0.
+
+@item boost
+Set max boost factor. Allowed range is from 1 to 12. Default value is 2.
 
 @item decay
 Set delay line decay gain value. Allowed range is from 0 to 1.
-Default value is 0.7.
+Default value is 0.0.
 
 @item feedback
 Set delay line feedback gain value. Allowed range is from 0 to 1.
@@ -3156,6 +3206,9 @@ Default value is 0.5.
 @item delay
 Set delay. Allowed range is from 1 to 100.
 Default value is 20.
+
+@item channels
+Set the channels to process. Default value is all available.
 @end table
 
 @subsection Commands
@@ -6277,6 +6330,40 @@ is enabled the minimum of all possible gains for each filtered channel is used.
 
 This filter supports the all above options as @ref{commands}.
 
+@subsection Examples
+
+@itemize
+@item
+Weak and slow amplification:
+@example
+speechnorm=e=3:r=0.00001:l=1
+@end example
+
+@item
+Moderate and slow amplification:
+@example
+speechnorm=e=6.25:r=0.00001:l=1
+@end example
+
+@item
+Strong and fast amplification:
+@example
+speechnorm=e=12.5:r=0.0001:l=1
+@end example
+
+@item
+Very strong and fast amplification:
+@example
+speechnorm=e=25:r=0.0001:l=1
+@end example
+
+@item
+Extreme and fast amplification:
+@example
+speechnorm=e=50:r=0.0001:l=1
+@end example
+@end itemize
+
 @section stereotools
 
 This filter has some handy utilities to manage stereo signals, for converting
@@ -6652,6 +6739,97 @@ Set window overlap. If set to 1, the recommended overlap for selected
 window function will be picked. Default is @code{0.5}.
 @end table
 
+@section tiltshelf
+
+Boost or cut the lower frequencies and cut or boost higher frequencies
+of the audio using a two-pole shelving filter with a response similar to
+that of a standard hi-fi's tone-controls.
+This is also known as shelving equalisation (EQ).
+
+The filter accepts the following options:
+
+@table @option
+@item gain, g
+Give the gain at 0 Hz. Its useful range is about -20
+(for a large cut) to +20 (for a large boost).
+Beware of clipping when using a positive gain.
+
+@item frequency, f
+Set the filter's central frequency and so can be used
+to extend or reduce the frequency range to be boosted or cut.
+The default value is @code{3000} Hz.
+
+@item width_type, t
+Set method to specify band-width of filter.
+@table @option
+@item h
+Hz
+@item q
+Q-Factor
+@item o
+octave
+@item s
+slope
+@item k
+kHz
+@end table
+
+@item width, w
+Determine how steep is the filter's shelf transition.
+
+@item poles, p
+Set number of poles. Default is 2.
+
+@item mix, m
+How much to use filtered signal in output. Default is 1.
+Range is between 0 and 1.
+
+@item channels, c
+Specify which channels to filter, by default all available are filtered.
+
+@item normalize, n
+Normalize biquad coefficients, by default is disabled.
+Enabling it will normalize magnitude response at DC to 0dB.
+
+@item transform, a
+Set transform type of IIR filter.
+@table @option
+@item di
+@item dii
+@item tdi
+@item tdii
+@item latt
+@item svf
+@item zdf
+@end table
+
+@item precision, r
+Set precison of filtering.
+@table @option
+@item auto
+Pick automatic sample format depending on surround filters.
+@item s16
+Always use signed 16-bit.
+@item s32
+Always use signed 32-bit.
+@item f32
+Always use float 32-bit.
+@item f64
+Always use float 64-bit.
+@end table
+
+@item block_size, b
+Set block size used for reverse IIR processing. If this value is set to high enough
+value (higher than impulse response length truncated when reaches near zero values) filtering
+will become linear phase otherwise if not big enough it will just produce nasty artifacts.
+
+Note that filter delay will be exactly this many samples when set to non-zero value.
+@end table
+
+@subsection Commands
+
+This filter supports some options as @ref{commands}.
+
 @section treble, highshelf
 
 Boost or cut treble (upper) frequencies of the audio using a two-pole
@@ -6796,6 +6974,26 @@ Range is 0.1 - 20000.0. Default value is 5.0 Hz.
 @item d
 Depth of modulation as a percentage. Range is 0.0 - 1.0.
 Default value is 0.5.
+@end table
+
+@section virtualbass
+
+Apply audio Virtual Bass filter.
+
+This filter accepts stereo input and produce stereo with LFE (2.1) channels output.
+The newly produced LFE channel have enhanced virtual bass originally obtained from both stereo channels.
+This filter outputs front left and front right channels unchanged as available in stereo input.
+
+The filter accepts the following options:
+
+@table @option
+@item cutoff
+Set the virtual bass cutoff frequency. Default value is 250 Hz.
+Allowed range is from 100 to 500 Hz.
+
+@item strength
+Set the virtual bass strength. Allowed range is from 0.5 to 3.
+Default value is 3.
 @end table
 
 @section volume
@@ -7816,6 +8014,45 @@ Set planes to filter. Default is first only.
 
 This filter supports the all above options as @ref{commands}.
 
+@section bilateral_cuda
+CUDA accelerated bilateral filter, an edge preserving filter.
+This filter is mathematically accurate thanks to the use of GPU acceleration.
+For best output quality, use one to one chroma subsampling, i.e. yuv444p format.
+
+The filter accepts the following options:
+@table @option
+@item sigmaS
+Set sigma of gaussian function to calculate spatial weight, also called sigma space.
+Allowed range is 0.1 to 512. Default is 0.1.
+
+@item sigmaR
+Set sigma of gaussian function to calculate color range weight, also called sigma color.
+Allowed range is 0.1 to 512. Default is 0.1.
+
+@item window_size
+Set window size of the bilateral function to determine the number of neighbours to loop on.
+If the number entered is even, one will be added automatically.
+Allowed range is 1 to 255. Default is 1.
+@end table
+@subsection Examples
+
+@itemize
+@item
+Apply the bilateral filter on a video.
+
+@example
+./ffmpeg -v verbose \
+-hwaccel cuda -hwaccel_output_format cuda -i input.mp4  \
+-init_hw_device cuda \
+-filter_complex \
+" \
+[0:v]scale_cuda=format=yuv444p[scaled_video];
+[scaled_video]bilateral_cuda=window_size=9:sigmaS=3.0:sigmaR=50.0" \
+-an -sn -c:v h264_nvenc -cq 20 out.mp4
+@end example
+
+@end itemize
+
 @section bitplanenoise
 
 Show and measure bit plane noise.
@@ -8092,6 +8329,35 @@ tblend=all_mode=grainextract
 
 @subsection Commands
 This filter supports same @ref{commands} as options.
+
+@anchor{blockdetect}
+@section blockdetect
+
+Determines blockiness of frames without altering the input frames.
+
+Based on Remco Muijs and Ihor Kirenko: "A no-reference blocking artifact measure for adaptive video processing." 2005 13th European signal processing conference.
+
+The filter accepts the following options:
+
+@table @option
+@item period_min
+@item period_max
+Set minimum and maximum values for determining pixel grids (periods).
+Default values are [3,24].
+
+@item planes
+Set planes to filter. Default is first only.
+@end table
+
+@subsection Examples
+
+@itemize
+@item
+Determine blockiness for the first plane and search for periods within [8,32]:
+@example
+blockdetect=period_min=8:period_max=32:planes=1
+@end example
+@end itemize
 
 @anchor{blurdetect}
 @section blurdetect
@@ -8421,6 +8687,7 @@ The command accepts the same syntax of the corresponding option.
 If the specified expression is not valid, it is kept at its current
 value.
 
+@anchor{chromakey}
 @section chromakey
 YUV colorspace color/chroma keying.
 
@@ -8471,6 +8738,48 @@ Overlay a greenscreen-video on top of a static black background.
 @example
 ffmpeg -f lavfi -i color=c=black:s=1280x720 -i video.mp4 -shortest -filter_complex "[1:v]chromakey=0x70de77:0.1:0.2[ckout];[0:v][ckout]overlay[out]" -map "[out]" output.mkv
 @end example
+@end itemize
+
+@section chromakey_cuda
+CUDA accelerated YUV colorspace color/chroma keying.
+
+This filter works like normal chromakey filter but operates on CUDA frames.
+for more details and parameters see @ref{chromakey}.
+
+@subsection Examples
+
+@itemize
+@item
+Make all the green pixels in the input video transparent and use it as an overlay for another video:
+
+@example
+./ffmpeg \
+    -hwaccel cuda -hwaccel_output_format cuda -i input_green.mp4  \
+    -hwaccel cuda -hwaccel_output_format cuda -i base_video.mp4 \
+    -init_hw_device cuda \
+    -filter_complex \
+    " \
+        [0:v]chromakey_cuda=0x25302D:0.1:0.12:1[overlay_video]; \
+        [1:v]scale_cuda=format=yuv420p[base]; \
+        [base][overlay_video]overlay_cuda" \
+    -an -sn -c:v h264_nvenc -cq 20 output.mp4
+@end example
+
+@item
+Process two software sources, explicitly uploading the frames:
+
+@example
+./ffmpeg -init_hw_device cuda=cuda -filter_hw_device cuda \
+    -f lavfi -i color=size=800x600:color=white,format=yuv420p \
+    -f lavfi -i yuvtestsrc=size=200x200,format=yuv420p \
+    -filter_complex \
+    " \
+        [0]hwupload[under]; \
+        [1]hwupload,chromakey_cuda=green:0.1:0.12[over]; \
+        [under][over]overlay_cuda" \
+    -c:v hevc_nvenc -cq 18 -preset slow output.mp4
+@end example
+
 @end itemize
 
 @section chromanr
@@ -9450,6 +9759,38 @@ For example to convert the input to SMPTE-240M, use the command:
 colorspace=smpte240m
 @end example
 
+@section colorspace_cuda
+
+CUDA accelerated implementation of the colorspace filter.
+
+It is by no means feature complete compared to the software colorspace filter,
+and at the current time only supports color range conversion between jpeg/full
+and mpeg/limited range.
+
+The filter accepts the following options:
+
+@table @option
+@item range
+Specify output color range.
+
+The accepted values are:
+@table @samp
+@item tv
+TV (restricted) range
+
+@item mpeg
+MPEG (restricted) range
+
+@item pc
+PC (full) range
+
+@item jpeg
+JPEG (full) range
+
+@end table
+
+@end table
+
 @section colortemperature
 Adjust color temperature in video to simulate variations in ambient color temperature.
 
@@ -9917,11 +10258,22 @@ Auto-detect the crop size.
 
 It calculates the necessary cropping parameters and prints the
 recommended parameters via the logging system. The detected dimensions
-correspond to the non-black area of the input video.
+correspond to the non-black or video area of the input video according to @var{mode}.
 
 It accepts the following parameters:
 
 @table @option
+
+@item mode
+Depending on @var{mode} crop detection is based on either the mere black value of surrounding pixels or a combination of motion vectors and edge pixels.
+
+@table @samp
+@item black
+Detect black pixels surrounding the playing video. For fine control use option @var{limit}.
+
+@item mvedges
+Detect the playing video by the motion vectors inside the video and scanning for edge pixels typically forming the border of a playing video.
+@end table
 
 @item limit
 Set higher black value threshold, which can be optionally specified
@@ -9948,7 +10300,47 @@ detect the current optimal crop area. Default value is 0.
 This can be useful when channel logos distort the video area. 0
 indicates 'never reset', and returns the largest area encountered during
 playback.
+
+@item mv_threshold
+Set motion in pixel units as threshold for motion detection. It defaults to 8.
+
+@item low
+@item high
+Set low and high threshold values used by the Canny thresholding
+algorithm.
+
+The high threshold selects the "strong" edge pixels, which are then
+connected through 8-connectivity with the "weak" edge pixels selected
+by the low threshold.
+
+@var{low} and @var{high} threshold values must be chosen in the range
+[0,1], and @var{low} should be lesser or equal to @var{high}.
+
+Default value for @var{low} is @code{5/255}, and default value for @var{high}
+is @code{15/255}.
 @end table
+
+@subsection Examples
+
+@itemize
+@item
+Find video area surrounded by black borders:
+@example
+ffmpeg -i file.mp4 -vf cropdetect,metadata=mode=print -f null -
+@end example
+
+@item
+Find an embedded video area, generate motion vectors beforehand:
+@example
+ffmpeg -i file.mp4 -vf mestimate,cropdetect=mode=mvedges,metadata=mode=print -f null -
+@end example
+
+@item
+Find an embedded video area, use motion vectors from decoder:
+@example
+ffmpeg -flags2 +export_mvs -i file.mp4 -vf cropdetect=mode=mvedges,metadata=mode=print -f null -
+@end example
+@end itemize
 
 @anchor{cue}
 @section cue
@@ -11621,7 +12013,7 @@ The current packet's position in the input file or stream
 (in bytes, from the start of the input). A value of -1 indicates
 this info is not available.
 
-@item pkt_duration
+@item duration
 The current packet's duration, in seconds.
 
 @item pkt_size
@@ -12198,8 +12590,8 @@ Specify the search radius for best edge matching. Default value is 2.
 Allowed range is from 0 to 15.
 
 @item ecost
-Specify the edge cost for edge matching. Default value is 0.03125.
-Allowed range is from 0 to 1.
+Specify the edge cost for edge matching. Default value is 1.0.
+Allowed range is from 0 to 9.
 
 @item mcost
 Specify the middle cost for edge matching. Default value is 0.5.
@@ -24087,6 +24479,8 @@ Set one of available transition effects:
 @item squeezeh
 @item squeezev
 @item zoomin
+@item fadefast
+@item fadeslow
 @end table
 Default transition effect is fade.
 
@@ -24203,8 +24597,26 @@ the output video frame will be filled. Similarly, videos can overlap each
 other if their position doesn't leave enough space for the full frame of
 adjoining videos.
 
-For 2 inputs, a default layout of @code{0_0|w0_0} is set. In all other cases,
-a layout must be set by the user.
+For 2 inputs, a default layout of @code{0_0|w0_0} (equivalent to
+@code{grid=2x1}) is set. In all other cases, a layout or a grid must be set by
+the user. Either @code{grid} or @code{layout} can be specified at a time.
+Specifying both will result in an error.
+
+@item grid
+Specify a fixed size grid of inputs.
+This option is used to create a fixed size grid of the input streams. Set the
+grid size in the form @code{COLUMNSxROWS}. There must be @code{ROWS * COLUMNS}
+input streams and they will be arranged as a grid with @code{ROWS} rows and
+@code{COLUMNS} columns. When using this option, each input stream within a row
+must have the same height and all the rows must have the same width.
+
+If @code{grid} is set, then @code{inputs} option is ignored and is implicitly
+set to @code{ROWS * COLUMNS}.
+
+For 2 inputs, a default grid of @code{2x1} (equivalent to
+@code{layout=0_0|w0_0}) is set. In all other cases, a layout or a grid must be
+set by the user. Either @code{grid} or @code{layout} can be specified at a time.
+Specifying both will result in an error.
 
 @item shortest
 If set to 1, force the output to terminate when the shortest input
@@ -25505,6 +25917,30 @@ __kernel void blend_images(__write_only image2d_t dst,
 
 @end itemize
 
+@section remap_opencl
+
+Remap pixels using 2nd: Xmap and 3rd: Ymap input video stream.
+
+Destination pixel at position (X, Y) will be picked from source (x, y) position
+where x = Xmap(X, Y) and y = Ymap(X, Y). If mapping values are out of range, zero
+value for pixel will be used for destination pixel.
+
+Xmap and Ymap input video streams must be of same dimensions. Output video stream
+will have Xmap/Ymap video stream dimensions.
+Xmap and Ymap input video streams are 32bit float pixel format, single channel.
+
+@table @option
+@item interp
+Specify interpolation used for remapping of pixels.
+Allowed values are @code{near} and @code{linear}.
+Default value is @code{linear}.
+
+@item fill
+Specify the color of the unmapped pixels. For the syntax of this option,
+check the @ref{color syntax,,"Color" section in the ffmpeg-utils
+manual,ffmpeg-utils}. Default color is @code{black}.
+@end table
+
 @section roberts_opencl
 Apply the Roberts cross operator (@url{https://en.wikipedia.org/wiki/Roberts_cross}) to input video stream.
 
@@ -25852,9 +26288,9 @@ Set the height of the overlaid video on the main video.
 Default value is the height of input overlay video.
 
 @item alpha
-Set blocking detection thresholds. Allowed range is 0.0 to 1.0, it
-requires an input video with alpha channel.
-Default value is @code{0.0}.
+Set transparency of overlaid video. Allowed range is 0.0 to 1.0.
+Higher value means lower transparency.
+Default value is @code{1.0}.
 
 @end table
 
@@ -26168,6 +26604,90 @@ ffmpeg -f lavfi -i coreimagesrc=s=100x100:filter=CIQRCodeGenerator@@inputMessage
 This example is equivalent to the QRCode example of @ref{coreimage} without the
 need for a nullsrc video source.
 @end itemize
+
+
+@section ddagrab
+
+Captures the Windows Desktop via Desktop Duplication API.
+
+The filter exclusively returns D3D11 Hardware Frames, for on-gpu encoding
+or processing. So an explicit @ref{hwdownload} is needed for any kind of
+software processing.
+
+It accepts the following options:
+
+@table @option
+@item output_idx
+DXGI Output Index to capture.
+
+Usually corresponds to the index Windows has given the screen minus one,
+so it's starting at 0.
+
+Defaults to output 0.
+
+@item draw_mouse
+Whether to draw the mouse cursor.
+
+Defaults to true.
+
+Only affects hardware cursors. If a game or application renders its own cursor,
+it'll always be captured.
+
+@item framerate
+Framerate at which the desktop will be captured.
+
+Defaults to 30 FPS.
+
+@item video_size
+Specify the size of the captured video.
+
+Defaults to the full size of the screen.
+
+Cropped from the bottom/right if smaller than screen size.
+
+@item offset_x
+Horizontal offset of the captured video.
+
+@item offset_y
+Vertical offset of the captured video.
+
+@item output_fmt
+Desired filter output format.
+Defaults to 8 Bit BGRA.
+
+It accepts the following values:
+@table @samp
+@item auto
+Passes all supported output formats to DDA and returns what DDA decides to use.
+@item 8bit
+@item bgra
+8 Bit formats always work, and DDA will convert to them if neccesary.
+@item 10bit
+@item x2bgr10
+Filter initialization will fail if 10 bit format is requested but unavailable.
+@end table
+
+@end table
+
+@subsection Examples
+
+Capture primary screen and encode using nvenc:
+@example
+ffmpeg -f lavfi -i ddagrab -c:v h264_nvenc -cq 18 output.mp4
+@end example
+
+You can also skip the lavfi device and directly use the filter.
+Also demonstrates downloading the frame and encoding with libx264.
+Explicit output format specification is required in this case:
+@example
+ffmpeg -filter_complex ddagrab=output_idx=1:framerate=60,hwdownload,format=bgra -c:v libx264 -crf 18 output.mp4
+@end example
+
+If you want to capture only a subsection of the desktop, this can be achieved
+by specifying a smaller size and its offsets into the screen:
+@example
+ddagrab=video_size=800x600:offset_x=100:offset_y=100
+@end example
 
 
 @section gradients
@@ -26816,6 +27336,61 @@ tools.
 @c man begin MULTIMEDIA FILTERS
 
 Below is a description of the currently available multimedia filters.
+
+@section a3dscope
+
+Convert input audio to 3d scope video output.
+
+The filter accepts the following options:
+
+@table @option
+@item rate, r
+Set frame rate, expressed as number of frames per second. Default
+value is "25".
+
+@item size, s
+Specify the video size for the output. For the syntax of this option, check the
+@ref{video size syntax,,"Video size" section in the ffmpeg-utils manual,ffmpeg-utils}.
+Default value is @code{hd720}.
+
+@item fov
+Set the camera field of view. Default is 90 degrees.
+Allowed range is from 40 to 150.
+
+@item roll
+Set the camera roll.
+
+@item pitch
+Set the camera pitch.
+
+@item yaw
+Set the camera yaw.
+
+@item xzoom
+Set the camera zoom on X-axis.
+
+@item yzoom
+Set the camera zoom on Y-axis.
+
+@item zzoom
+Set the camera zoom on Z-axis.
+
+@item xpos
+Set the camera position on X-axis.
+
+@item ypos
+Set the camera position on Y-axis.
+
+@item zpos
+Set the camera position on Z-axis.
+
+@item length
+Set the length of displayed audio waves in number of frames.
+@end table
+
+@subsection Commands
+
+Filter supports the some above options as @ref{commands}.
 
 @section abitscope
 

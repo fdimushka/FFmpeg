@@ -34,8 +34,8 @@
 
 #define BITSTREAM_READER_LE
 #include "avcodec.h"
+#include "decode.h"
 #include "get_bits.h"
-#include "internal.h"
 #include "ivi.h"
 #include "ivi_dsp.h"
 
@@ -161,7 +161,7 @@ static int ivi_create_huff_from_desc(const IVIHuffDesc *cb, VLC *vlc, int flag)
 static av_cold void ivi_init_static_vlc(void)
 {
     int i;
-    static VLC_TYPE table_data[8192 * 16][2];
+    static VLCElem table_data[8192 * 16];
 
     for (i = 0; i < 8; i++) {
         ivi_mb_vlc_tabs[i].table = table_data + i * 2 * 8192;

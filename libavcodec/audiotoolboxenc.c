@@ -555,7 +555,8 @@ static int ffat_encode(AVCodecContext *avctx, AVPacket *avpkt,
                            &avpkt->pts,
                            &avpkt->duration);
     } else if (ret && ret != 1) {
-        av_log(avctx, AV_LOG_WARNING, "Encode error: %i\n", ret);
+        av_log(avctx, AV_LOG_ERROR, "Encode error: %i\n", ret);
+        return AVERROR_EXTERNAL;
     }
 
     return 0;
@@ -615,7 +616,7 @@ static const AVOption options[] = {
     FFAT_ENC_CLASS(NAME) \
     const FFCodec ff_##NAME##_at_encoder = { \
         .p.name         = #NAME "_at", \
-        .p.long_name    = NULL_IF_CONFIG_SMALL(#NAME " (AudioToolbox)"), \
+        CODEC_LONG_NAME(#NAME " (AudioToolbox)"), \
         .p.type         = AVMEDIA_TYPE_AUDIO, \
         .p.id           = ID, \
         .priv_data_size = sizeof(ATDecodeContext), \
@@ -632,7 +633,6 @@ static const AVOption options[] = {
             AV_SAMPLE_FMT_S16, \
             AV_SAMPLE_FMT_U8,  AV_SAMPLE_FMT_NONE \
         }, \
-        .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE, \
         .p.profiles     = PROFILES, \
         .p.wrapper_name = "at", \
     };

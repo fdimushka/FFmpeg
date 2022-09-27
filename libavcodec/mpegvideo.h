@@ -28,8 +28,6 @@
 #ifndef AVCODEC_MPEGVIDEO_H
 #define AVCODEC_MPEGVIDEO_H
 
-#include <float.h>
-
 #include "avcodec.h"
 #include "blockdsp.h"
 #include "error_resilience.h"
@@ -237,6 +235,15 @@ typedef struct MpegEncContext {
     int16_t (*b_field_mv_table[2][2][2])[2];///< MV table (4MV per MB) interlaced B-frame encoding
     uint8_t (*p_field_select_table[2]);  ///< Only the first element is allocated
     uint8_t (*b_field_select_table[2][2]); ///< Only the first element is allocated
+
+    /* The following fields are encoder-only */
+    uint16_t *mb_var;           ///< Table for MB variances
+    uint16_t *mc_mb_var;        ///< Table for motion compensated MB variances
+    uint8_t *mb_mean;           ///< Table for MB luminance
+    int64_t mb_var_sum;         ///< sum of MB variance for current frame
+    int64_t mc_mb_var_sum;      ///< motion compensated MB variance for current frame
+    uint64_t encoding_error[MPEGVIDEO_MAX_PLANES];
+
     int motion_est;                      ///< ME algorithm
     int me_penalty_compensation;
     int me_pre;                          ///< prepass for motion estimation
@@ -538,10 +545,6 @@ typedef struct MpegEncContext {
     int noise_reduction;
 
     int intra_penalty;
-
-#if FF_API_MPEGVIDEO_OPTS || FF_API_MJPEG_PRED
-    int dummy;               ///< used as target for deprecated options
-#endif
 } MpegEncContext;
 
 
@@ -592,13 +595,15 @@ void ff_init_block_index(MpegEncContext *s);
 void ff_mpv_motion(MpegEncContext *s,
                    uint8_t *dest_y, uint8_t *dest_cb,
                    uint8_t *dest_cr, int dir,
-                   uint8_t **ref_picture,
+                   uint8_t *const *ref_picture,
                    op_pixels_func (*pix_op)[4],
                    qpel_mc_func (*qpix_op)[16]);
 
-static inline void ff_update_block_index(MpegEncContext *s){
-    const int bytes_per_pixel = 1 + (s->avctx->bits_per_raw_sample > 8);
-    const int block_size= (8*bytes_per_pixel) >> s->avctx->lowres;
+static inline void ff_update_block_index(MpegEncContext *s, int bits_per_raw_sample,
+                                         int lowres, int chroma_x_shift)
+{
+    const int bytes_per_pixel = 1 + (bits_per_raw_sample > 8);
+    const int block_size = (8 * bytes_per_pixel) >> lowres;
 
     s->block_index[0]+=2;
     s->block_index[1]+=2;
@@ -607,8 +612,8 @@ static inline void ff_update_block_index(MpegEncContext *s){
     s->block_index[4]++;
     s->block_index[5]++;
     s->dest[0]+= 2*block_size;
-    s->dest[1]+= (2 >> s->chroma_x_shift) * block_size;
-    s->dest[2]+= (2 >> s->chroma_x_shift) * block_size;
+    s->dest[1] += (2 >> chroma_x_shift) * block_size;
+    s->dest[2] += (2 >> chroma_x_shift) * block_size;
 }
 
 #endif /* AVCODEC_MPEGVIDEO_H */

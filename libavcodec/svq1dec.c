@@ -37,10 +37,10 @@
 
 #include "avcodec.h"
 #include "codec_internal.h"
+#include "decode.h"
 #include "get_bits.h"
 #include "h263data.h"
 #include "hpeldsp.h"
-#include "internal.h"
 #include "mathops.h"
 #include "svq1.h"
 
@@ -777,7 +777,7 @@ static av_cold void svq1_static_init(void)
     for (int i = 0, offset = 0; i < 6; i++) {
         static const uint8_t sizes[2][6] = { { 14, 10, 14, 18, 16, 18 },
                                              { 10, 10, 14, 14, 14, 16 } };
-        static VLC_TYPE table[168][2];
+        static VLCElem table[168];
         svq1_intra_multistage[i].table           = &table[offset];
         svq1_intra_multistage[i].table_allocated = sizes[0][i];
         offset                                  += sizes[0][i];
@@ -845,7 +845,7 @@ static void svq1_flush(AVCodecContext *avctx)
 
 const FFCodec ff_svq1_decoder = {
     .p.name         = "svq1",
-    .p.long_name    = NULL_IF_CONFIG_SMALL("Sorenson Vector Quantizer 1 / Sorenson Video 1 / SVQ1"),
+    CODEC_LONG_NAME("Sorenson Vector Quantizer 1 / Sorenson Video 1 / SVQ1"),
     .p.type         = AVMEDIA_TYPE_VIDEO,
     .p.id           = AV_CODEC_ID_SVQ1,
     .priv_data_size = sizeof(SVQ1Context),
@@ -856,5 +856,4 @@ const FFCodec ff_svq1_decoder = {
     .flush          = svq1_flush,
     .p.pix_fmts     = (const enum AVPixelFormat[]) { AV_PIX_FMT_YUV410P,
                                                      AV_PIX_FMT_NONE },
-    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE,
 };

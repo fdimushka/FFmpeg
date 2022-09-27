@@ -330,11 +330,12 @@ static const int libmp3lame_sample_rates[] = {
 
 const FFCodec ff_libmp3lame_encoder = {
     .p.name                = "libmp3lame",
-    .p.long_name           = NULL_IF_CONFIG_SMALL("libmp3lame MP3 (MPEG audio layer 3)"),
+    CODEC_LONG_NAME("libmp3lame MP3 (MPEG audio layer 3)"),
     .p.type                = AVMEDIA_TYPE_AUDIO,
     .p.id                  = AV_CODEC_ID_MP3,
     .p.capabilities        = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_DELAY |
                              AV_CODEC_CAP_SMALL_LAST_FRAME,
+    .caps_internal         = FF_CODEC_CAP_NOT_INIT_THREADSAFE,
     .priv_data_size        = sizeof(LAMEContext),
     .init                  = mp3lame_encode_init,
     FF_CODEC_ENCODE_CB(mp3lame_encode_frame),

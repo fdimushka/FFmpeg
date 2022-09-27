@@ -22,13 +22,13 @@
 #include <float.h>
 
 #include "libavutil/common.h"
+#include "libavutil/file_open.h"
 #include "libavutil/float_dsp.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/mem_internal.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
 #include "avfilter.h"
-#include "formats.h"
 #include "internal.h"
 #include "video.h"
 
@@ -957,7 +957,7 @@ static av_cold int init(AVFilterContext *ctx)
     size_t bytes_read;
     int ret = 0;
 
-    weights_file = av_fopen_utf8(s->weights_file, "rb");
+    weights_file = avpriv_fopen_utf8(s->weights_file, "rb");
     if (!weights_file) {
         av_log(ctx, AV_LOG_ERROR, "No weights file provided, aborting!\n");
         return AVERROR(EINVAL);

@@ -31,6 +31,7 @@
 #include "h263enc.h"
 #include "mpeg4video.h"
 #include "mpeg4videodata.h"
+#include "mpeg4videodefs.h"
 #include "mpeg4videoenc.h"
 #include "mpegvideoenc.h"
 #include "profiles.h"
@@ -639,7 +640,7 @@ void ff_mpeg4_encode_mb(MpegEncContext *s, int16_t block[6][64],
                 if (s->max_b_frames > 0) {
                     int i;
                     int x, y, offset;
-                    uint8_t *p_pic;
+                    const uint8_t *p_pic;
 
                     x = s->mb_x * 16;
                     y = s->mb_y * 16;
@@ -649,7 +650,7 @@ void ff_mpeg4_encode_mb(MpegEncContext *s, int16_t block[6][64],
 
                     s->mb_skipped = 1;
                     for (i = 0; i < s->max_b_frames; i++) {
-                        uint8_t *b_pic;
+                        const uint8_t *b_pic;
                         int diff;
                         Picture *pic = s->reordered_input_picture[i + 1];
 
@@ -1081,8 +1082,8 @@ int ff_mpeg4_encode_picture_header(MpegEncContext *s, int picture_number)
     time_mod  = FFUMOD(s->time, s->avctx->time_base.den);
     time_incr = time_div - s->last_time_base;
 
-    // This limits the frame duration to max 1 hour
-    if (time_incr > 3600) {
+    // This limits the frame duration to max 1 day
+    if (time_incr > 3600*24) {
         av_log(s->avctx, AV_LOG_ERROR, "time_incr %"PRIu64" too large\n", time_incr);
         return AVERROR(EINVAL);
     }
@@ -1379,10 +1380,7 @@ static const AVOption options[] = {
       OFFSET(mpeg_quant), AV_OPT_TYPE_INT, {.i64 = 0 }, 0, 1, VE },
     FF_MPV_COMMON_BFRAME_OPTS
     FF_MPV_COMMON_OPTS
-#if FF_API_MPEGVIDEO_OPTS
-    FF_MPV_DEPRECATED_A53_CC_OPT
-    FF_MPV_DEPRECATED_MATRIX_OPT
-#endif
+    FF_MPV_COMMON_MOTION_EST_OPTS
     FF_MPEG4_PROFILE_OPTS
     { NULL },
 };
@@ -1396,7 +1394,7 @@ static const AVClass mpeg4enc_class = {
 
 const FFCodec ff_mpeg4_encoder = {
     .p.name         = "mpeg4",
-    .p.long_name    = NULL_IF_CONFIG_SMALL("MPEG-4 part 2"),
+    CODEC_LONG_NAME("MPEG-4 part 2"),
     .p.type         = AVMEDIA_TYPE_VIDEO,
     .p.id           = AV_CODEC_ID_MPEG4,
     .priv_data_size = sizeof(MpegEncContext),
@@ -1405,6 +1403,6 @@ const FFCodec ff_mpeg4_encoder = {
     .close          = ff_mpv_encode_end,
     .p.pix_fmts     = (const enum AVPixelFormat[]) { AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE },
     .p.capabilities = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_SLICE_THREADS,
-    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_INIT_CLEANUP,
+    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
     .p.priv_class   = &mpeg4enc_class,
 };

@@ -45,6 +45,7 @@
 #include "libavutil/imgutils.h"
 
 #define ZIMG_ALIGNMENT 64
+#define MIN_TILESIZE 64
 #define MAX_THREADS 64
 
 static const char *const var_names[] = {
@@ -119,8 +120,8 @@ typedef struct ZScaleContext {
     void *tmp[MAX_THREADS]; //separate for each thread;
     int nb_threads;
     int jobs_ret[MAX_THREADS];
-    int in_slice_start[MAX_THREADS];
-    int in_slice_end[MAX_THREADS];
+    double in_slice_start[MAX_THREADS];
+    double in_slice_end[MAX_THREADS];
     int out_slice_start[MAX_THREADS];
     int out_slice_end[MAX_THREADS];
 
@@ -148,12 +149,6 @@ static av_cold int init(AVFilterContext *ctx)
 {
     ZScaleContext *s = ctx->priv;
     int ret;
-    int i;
-    for (i = 0; i < MAX_THREADS; i++) {
-        s->tmp[i] = NULL;
-        s->graph[i] = NULL;
-        s->alpha_graph[i] = NULL;
-    }
     zimg_image_format_default(&s->src_format, ZIMG_API_VERSION);
     zimg_image_format_default(&s->dst_format, ZIMG_API_VERSION);
     zimg_image_format_default(&s->src_format_tmp, ZIMG_API_VERSION);
@@ -232,26 +227,16 @@ static int query_formats(AVFilterContext *ctx)
 
 static void slice_params(ZScaleContext *s, int out_h, int in_h)
 {
-    int slice_size;
-
-    slice_size = (out_h + s->nb_threads - 1) / s->nb_threads;
-    if (slice_size % 2)
-        slice_size += 1;
     s->out_slice_start[0] = 0;
-    s->out_slice_end[0] = FFMIN(out_h, slice_size);
-    for (int i = 1; i < s->nb_threads - 1; i++) {
-        s->out_slice_start[i] = s->out_slice_end[i-1];
-        s->out_slice_end[i] = s->out_slice_start[i] + slice_size;
+    for (int i = 1; i < s->nb_threads; i++) {
+        int slice_end = out_h * i / s->nb_threads;
+        s->out_slice_end[i - 1] = s->out_slice_start[i] = FFALIGN(slice_end, 2);
     }
-
-    if (s->nb_threads > 1) {
-        s->out_slice_start[s->nb_threads - 1] = s->out_slice_end[s->nb_threads - 2];
-        s->out_slice_end[s->nb_threads - 1] = out_h;
-    }
+    s->out_slice_end[s->nb_threads - 1] = out_h;
 
     for (int i = 0; i < s->nb_threads; i++) {
-        s->in_slice_start[i] = av_rescale_rnd(s->out_slice_start[i], in_h * 2, out_h * 2, AV_ROUND_NEAR_INF);
-        s->in_slice_end[i] = av_rescale_rnd(s->out_slice_end[i], in_h * 2, out_h * 2, AV_ROUND_NEAR_INF);
+        s->in_slice_start[i] = s->out_slice_start[i] * in_h / (double)out_h;
+        s->in_slice_end[i]   = s->out_slice_end[i]   * in_h / (double)out_h;
     }
 }
 
@@ -599,8 +584,8 @@ static int graphs_build(AVFrame *in, AVFrame *out, const AVPixFmtDescriptor *des
     zimg_image_format dst_format;
     zimg_image_format alpha_src_format;
     zimg_image_format alpha_dst_format;
-    const int in_slice_start  = s->in_slice_start[job_nr];
-    const int in_slice_end    = s->in_slice_end[job_nr];
+    const double in_slice_start  = s->in_slice_start[job_nr];
+    const double in_slice_end    = s->in_slice_end[job_nr];
     const int out_slice_start = s->out_slice_start[job_nr];
     const int out_slice_end   = s->out_slice_end[job_nr];
 
@@ -829,7 +814,7 @@ static int filter_frame(AVFilterLink *link, AVFrame *in)
         link->dst->inputs[0]->w      = in->width;
         link->dst->inputs[0]->h      = in->height;
 
-        s->nb_threads = av_clip(FFMIN(ff_filter_get_nb_threads(ctx), FFMIN(link->h, outlink->h) / 8), 1, MAX_THREADS);
+        s->nb_threads = av_clip(FFMIN(ff_filter_get_nb_threads(ctx), FFMIN(link->h, outlink->h) / MIN_TILESIZE), 1, MAX_THREADS);
         s->in_colorspace = in->colorspace;
         s->in_trc = in->color_trc;
         s->in_primaries = in->color_primaries;
@@ -852,7 +837,7 @@ static int filter_frame(AVFilterLink *link, AVFrame *in)
         s->first_time = 0;
 
         s->params.dither_type = s->dither;
-        s->params.cpu_type = ZIMG_CPU_AUTO;
+        s->params.cpu_type = ZIMG_CPU_AUTO_64B;
         s->params.resample_filter = s->filter;
         s->params.resample_filter_uv = s->filter;
         s->params.nominal_peak_luminance = s->nominal_peak_luminance;
@@ -866,7 +851,7 @@ static int filter_frame(AVFilterLink *link, AVFrame *in)
             zimg_graph_builder_params_default(&s->alpha_params, ZIMG_API_VERSION);
 
             s->alpha_params.dither_type = s->dither;
-            s->alpha_params.cpu_type = ZIMG_CPU_AUTO;
+            s->alpha_params.cpu_type = ZIMG_CPU_AUTO_64B;
             s->alpha_params.resample_filter = s->filter;
 
             s->alpha_src_format.width = in->width;
@@ -1048,6 +1033,7 @@ static const AVOption zscale_options[] = {
     {     "bt470m",           0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_TRANSFER_470_M},       0, 0, FLAGS, "transfer" },
     {     "bt470bg",          0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_TRANSFER_470_BG},      0, 0, FLAGS, "transfer" },
     {     "smpte170m",        0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_TRANSFER_601},         0, 0, FLAGS, "transfer" },
+    {     "smpte240m",        0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_TRANSFER_240M},        0, 0, FLAGS, "transfer" },
     {     "bt709",            0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_TRANSFER_709},         0, 0, FLAGS, "transfer" },
     {     "linear",           0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_TRANSFER_LINEAR},      0, 0, FLAGS, "transfer" },
     {     "log100",           0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_TRANSFER_LOG_100},     0, 0, FLAGS, "transfer" },
@@ -1073,7 +1059,7 @@ static const AVOption zscale_options[] = {
     {     "fcc",              0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_MATRIX_FCC},         0, 0, FLAGS, "matrix" },
     {     "bt470bg",          0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_MATRIX_470BG},       0, 0, FLAGS, "matrix" },
     {     "smpte170m",        0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_MATRIX_170M},        0, 0, FLAGS, "matrix" },
-    {     "smpte2400m",       0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_MATRIX_240M},        0, 0, FLAGS, "matrix" },
+    {     "smpte240m",        0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_MATRIX_240M},        0, 0, FLAGS, "matrix" },
     {     "ycgco",            0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_MATRIX_YCGCO},       0, 0, FLAGS, "matrix" },
     {     "bt2020nc",         0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_MATRIX_2020_NCL},    0, 0, FLAGS, "matrix" },
     {     "bt2020c",          0,       0,                 AV_OPT_TYPE_CONST, {.i64 = ZIMG_MATRIX_2020_CL},     0, 0, FLAGS, "matrix" },

@@ -416,7 +416,7 @@ static av_cold int twinvq_decode_init(AVCodecContext *avctx)
 
 const FFCodec ff_twinvq_decoder = {
     .p.name         = "twinvq",
-    .p.long_name    = NULL_IF_CONFIG_SMALL("VQF TwinVQ"),
+    CODEC_LONG_NAME("VQF TwinVQ"),
     .p.type         = AVMEDIA_TYPE_AUDIO,
     .p.id           = AV_CODEC_ID_TWINVQ,
     .priv_data_size = sizeof(TwinVQContext),
@@ -426,5 +426,5 @@ const FFCodec ff_twinvq_decoder = {
     .p.capabilities = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_CHANNEL_CONF,
     .p.sample_fmts  = (const enum AVSampleFormat[]) { AV_SAMPLE_FMT_FLTP,
                                                       AV_SAMPLE_FMT_NONE },
-    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_INIT_CLEANUP,
+    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
 };

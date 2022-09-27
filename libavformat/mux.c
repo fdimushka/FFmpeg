@@ -632,6 +632,8 @@ static void handle_avoid_negative_ts(FFFormatContext *si, FFStream *sti,
         if (ts == AV_NOPTS_VALUE)
             return;
 
+        ts -= sti->lowest_ts_allowed;
+
         /* Peek into the muxing queue to improve our estimate
          * of the lowest timestamp if av_interleaved_write_frame() is used. */
         for (const PacketListEntry *pktl = si->packet_buffer.head;
@@ -640,6 +642,7 @@ static void handle_avoid_negative_ts(FFFormatContext *si, FFStream *sti,
             int64_t cmp_ts = use_pts ? pktl->pkt.pts : pktl->pkt.dts;
             if (cmp_ts == AV_NOPTS_VALUE)
                 continue;
+            cmp_ts -= ffstream(s->streams[pktl->pkt.stream_index])->lowest_ts_allowed;
             if (s->output_ts_offset)
                 cmp_ts += av_rescale_q(s->output_ts_offset, AV_TIME_BASE_Q, cmp_tb);
             if (av_compare_ts(cmp_ts, cmp_tb, ts, tb) < 0) {
@@ -669,7 +672,7 @@ static void handle_avoid_negative_ts(FFFormatContext *si, FFStream *sti,
         pkt->pts += offset;
 
     if (si->avoid_negative_ts_use_pts) {
-        if (pkt->pts != AV_NOPTS_VALUE && pkt->pts < 0) {
+        if (pkt->pts != AV_NOPTS_VALUE && pkt->pts < sti->lowest_ts_allowed) {
             av_log(s, AV_LOG_WARNING, "failed to avoid negative "
                    "pts %s in stream %d.\n"
                    "Try -avoid_negative_ts 1 as a possible workaround.\n",
@@ -678,7 +681,7 @@ static void handle_avoid_negative_ts(FFFormatContext *si, FFStream *sti,
             );
         }
     } else {
-        if (pkt->dts != AV_NOPTS_VALUE && pkt->dts < 0) {
+        if (pkt->dts != AV_NOPTS_VALUE && pkt->dts < sti->lowest_ts_allowed) {
             av_log(s, AV_LOG_WARNING,
                    "Packets poorly interleaved, failed to avoid negative "
                    "timestamp %s in stream %d.\n"
@@ -1417,7 +1420,14 @@ static int write_uncoded_frame_internal(AVFormatContext *s, int stream_index,
         pkt->size         = sizeof(frame);
         pkt->pts          =
         pkt->dts          = frame->pts;
-        pkt->duration     = frame->pkt_duration;
+#if FF_API_PKT_DURATION
+FF_DISABLE_DEPRECATION_WARNINGS
+        if (frame->pkt_duration)
+            pkt->duration     = frame->pkt_duration;
+        else
+FF_ENABLE_DEPRECATION_WARNINGS
+#endif
+        pkt->duration = frame->duration;
         pkt->stream_index = stream_index;
         pkt->flags |= AV_PKT_FLAG_UNCODED_FRAME;
     }

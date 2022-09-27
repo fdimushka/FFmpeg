@@ -47,7 +47,7 @@ static VLC ptype_vlc[NUM_PTYPE_VLCS], btype_vlc[NUM_BTYPE_VLCS];
 static av_cold void rv40_init_table(VLC *vlc, unsigned *offset, int nb_bits,
                                     int nb_codes, const uint8_t (*tab)[2])
 {
-    static VLC_TYPE vlc_buf[11776][2];
+    static VLCElem vlc_buf[11776];
 
     vlc->table           = &vlc_buf[*offset];
     vlc->table_allocated = 1 << nb_bits;
@@ -64,7 +64,7 @@ static av_cold void rv40_init_table(VLC *vlc, unsigned *offset, int nb_bits,
 static av_cold void rv40_init_tables(void)
 {
     int i, offset = 0;
-    static VLC_TYPE aic_mode2_table[11814][2];
+    static VLCElem aic_mode2_table[11814];
 
     rv40_init_table(&aic_top_vlc, &offset, AIC_TOP_BITS, AIC_TOP_SIZE,
                     rv40_aic_top_vlc_tab);
@@ -576,7 +576,7 @@ static av_cold int rv40_decode_init(AVCodecContext *avctx)
 
 const FFCodec ff_rv40_decoder = {
     .p.name                = "rv40",
-    .p.long_name           = NULL_IF_CONFIG_SMALL("RealVideo 4.0"),
+    CODEC_LONG_NAME("RealVideo 4.0"),
     .p.type                = AVMEDIA_TYPE_VIDEO,
     .p.id                  = AV_CODEC_ID_RV40,
     .priv_data_size        = sizeof(RV34DecContext),
@@ -590,7 +590,6 @@ const FFCodec ff_rv40_decoder = {
         AV_PIX_FMT_YUV420P,
         AV_PIX_FMT_NONE
     },
-    .update_thread_context = ONLY_IF_THREADS_ENABLED(ff_rv34_decode_update_thread_context),
-    .caps_internal         = FF_CODEC_CAP_INIT_THREADSAFE |
-                             FF_CODEC_CAP_ALLOCATE_PROGRESS,
+    UPDATE_THREAD_CONTEXT(ff_rv34_decode_update_thread_context),
+    .caps_internal         = FF_CODEC_CAP_ALLOCATE_PROGRESS,
 };

@@ -20,6 +20,8 @@
  */
 
 #include "libavutil/avstring.h"
+#include "libavutil/file_open.h"
+#include "libavutil/getenv_utf8.h"
 #include "libavutil/opt.h"
 #include <sys/stat.h>
 #include "os_support.h"
@@ -55,12 +57,15 @@ static int populate_ipfs_gateway(URLContext *h)
     int stat_ret = 0;
     int ret = AVERROR(EINVAL);
     FILE *gateway_file = NULL;
+    char *env_ipfs_gateway, *env_ipfs_path;
 
     // Test $IPFS_GATEWAY.
-    if (getenv("IPFS_GATEWAY") != NULL) {
-        if (snprintf(c->gateway_buffer, sizeof(c->gateway_buffer), "%s",
-                     getenv("IPFS_GATEWAY"))
-            >= sizeof(c->gateway_buffer)) {
+    env_ipfs_gateway = getenv_utf8("IPFS_GATEWAY");
+    if (env_ipfs_gateway != NULL) {
+        int printed = snprintf(c->gateway_buffer, sizeof(c->gateway_buffer),
+                               "%s", env_ipfs_gateway);
+        freeenv_utf8(env_ipfs_gateway);
+        if (printed >= sizeof(c->gateway_buffer)) {
             av_log(h, AV_LOG_WARNING,
                    "The IPFS_GATEWAY environment variable "
                    "exceeds the maximum length. "
@@ -77,20 +82,26 @@ static int populate_ipfs_gateway(URLContext *h)
 
     // We need to know the IPFS folder to - eventually - read the contents of
     // the "gateway" file which would tell us the gateway to use.
-    if (getenv("IPFS_PATH") == NULL) {
+    env_ipfs_path = getenv_utf8("IPFS_PATH");
+    if (env_ipfs_path == NULL) {
+        int printed;
+        char *env_home = getenv_utf8("HOME");
+
         av_log(h, AV_LOG_DEBUG, "$IPFS_PATH is empty.\n");
 
         // Try via the home folder.
-        if (getenv("HOME") == NULL) {
+        if (env_home == NULL) {
             av_log(h, AV_LOG_WARNING, "$HOME appears to be empty.\n");
             ret = AVERROR(EINVAL);
             goto err;
         }
 
         // Verify the composed path fits.
-        if (snprintf(ipfs_full_data_folder, sizeof(ipfs_full_data_folder),
-                     "%s/.ipfs/", getenv("HOME"))
-            >= sizeof(ipfs_full_data_folder)) {
+        printed = snprintf(
+            ipfs_full_data_folder, sizeof(ipfs_full_data_folder),
+            "%s/.ipfs/", env_home);
+        freeenv_utf8(env_home);
+        if (printed >= sizeof(ipfs_full_data_folder)) {
             av_log(h, AV_LOG_WARNING,
                    "The IPFS data path exceeds the "
                    "max path length (%zu)\n",
@@ -113,9 +124,11 @@ static int populate_ipfs_gateway(URLContext *h)
             goto err;
         }
     } else {
-        if (snprintf(ipfs_full_data_folder, sizeof(ipfs_full_data_folder), "%s",
-                     getenv("IPFS_PATH"))
-            >= sizeof(ipfs_full_data_folder)) {
+        int printed = snprintf(
+            ipfs_full_data_folder, sizeof(ipfs_full_data_folder),
+            "%s", env_ipfs_path);
+        freeenv_utf8(env_ipfs_path);
+        if (printed >= sizeof(ipfs_full_data_folder)) {
             av_log(h, AV_LOG_WARNING,
                    "The IPFS_PATH environment variable "
                    "exceeds the maximum length. "
@@ -139,7 +152,7 @@ static int populate_ipfs_gateway(URLContext *h)
     }
 
     // Get the contents of the gateway file.
-    gateway_file = av_fopen_utf8(ipfs_gateway_file, "r");
+    gateway_file = avpriv_fopen_utf8(ipfs_gateway_file, "r");
     if (!gateway_file) {
         av_log(h, AV_LOG_WARNING,
                "The IPFS gateway file (full uri: %s) doesn't exist. "
@@ -228,13 +241,8 @@ static int translate_ipfs_to_http(URLContext *h, const char *uri, int flags, AVD
         ret = populate_ipfs_gateway(h);
 
         if (ret < 1) {
-            // We fallback on dweb.link (managed by Protocol Labs).
-            snprintf(c->gateway_buffer, sizeof(c->gateway_buffer), "https://dweb.link");
-
-            av_log(h, AV_LOG_WARNING,
-                   "IPFS does not appear to be running. "
-                   "You’re now using the public gateway at dweb.link.\n");
-            av_log(h, AV_LOG_INFO,
+            av_log(h, AV_LOG_ERROR,
+                   "IPFS does not appear to be running.\n\n"
                    "Installing IPFS locally is recommended to "
                    "improve performance and reliability, "
                    "and not share all your activity with a single IPFS gateway.\n"
@@ -247,6 +255,8 @@ static int translate_ipfs_to_http(URLContext *h, const char *uri, int flags, AVD
                    "3. Define an $IPFS_PATH environment variable "
                    "and point it to the IPFS data path "
                    "- this is typically ~/.ipfs\n");
+            ret = AVERROR(EINVAL);
+            goto err;
         }
     }
 

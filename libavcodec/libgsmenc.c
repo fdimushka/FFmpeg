@@ -119,7 +119,7 @@ static const FFCodecDefault libgsm_defaults[] = {
 #if CONFIG_LIBGSM_ENCODER
 const FFCodec ff_libgsm_encoder = {
     .p.name         = "libgsm",
-    .p.long_name    = NULL_IF_CONFIG_SMALL("libgsm GSM"),
+    CODEC_LONG_NAME("libgsm GSM"),
     .p.type         = AVMEDIA_TYPE_AUDIO,
     .p.id           = AV_CODEC_ID_GSM,
     .p.capabilities = AV_CODEC_CAP_DR1,
@@ -134,12 +134,13 @@ const FFCodec ff_libgsm_encoder = {
     .p.sample_fmts  = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_NONE },
     .p.wrapper_name = "libgsm",
+    .caps_internal  = FF_CODEC_CAP_NOT_INIT_THREADSAFE,
 };
 #endif
 #if CONFIG_LIBGSM_MS_ENCODER
 const FFCodec ff_libgsm_ms_encoder = {
     .p.name         = "libgsm_ms",
-    .p.long_name    = NULL_IF_CONFIG_SMALL("libgsm GSM Microsoft variant"),
+    CODEC_LONG_NAME("libgsm GSM Microsoft variant"),
     .p.type         = AVMEDIA_TYPE_AUDIO,
     .p.id           = AV_CODEC_ID_GSM_MS,
     .p.capabilities = AV_CODEC_CAP_DR1,
@@ -154,5 +155,6 @@ const FFCodec ff_libgsm_ms_encoder = {
     .p.sample_fmts  = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_S16,
                                                      AV_SAMPLE_FMT_NONE },
     .p.wrapper_name = "libgsm",
+    .caps_internal  = FF_CODEC_CAP_NOT_INIT_THREADSAFE,
 };
 #endif

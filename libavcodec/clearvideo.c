@@ -30,9 +30,9 @@
 #include "avcodec.h"
 #include "bytestream.h"
 #include "codec_internal.h"
+#include "decode.h"
 #include "get_bits.h"
 #include "idctdsp.h"
-#include "internal.h"
 #include "mathops.h"
 #include "clearvideodata.h"
 
@@ -84,7 +84,7 @@ typedef struct CLVContext {
 
 static VLC        dc_vlc, ac_vlc;
 static LevelCodes lev[4 + 3 + 3]; // 0..3: Y, 4..6: U, 7..9: V
-static VLC_TYPE   vlc_buf[16716][2];
+static VLCElem    vlc_buf[16716];
 
 static inline int decode_block(CLVContext *ctx, int16_t *blk, int has_ac,
                                int ac_quant)
@@ -769,7 +769,7 @@ static av_cold int clv_decode_end(AVCodecContext *avctx)
 
 const FFCodec ff_clearvideo_decoder = {
     .p.name         = "clearvideo",
-    .p.long_name    = NULL_IF_CONFIG_SMALL("Iterated Systems ClearVideo"),
+    CODEC_LONG_NAME("Iterated Systems ClearVideo"),
     .p.type         = AVMEDIA_TYPE_VIDEO,
     .p.id           = AV_CODEC_ID_CLEARVIDEO,
     .priv_data_size = sizeof(CLVContext),
@@ -777,5 +777,5 @@ const FFCodec ff_clearvideo_decoder = {
     .close          = clv_decode_end,
     FF_CODEC_DECODE_CB(clv_decode_frame),
     .p.capabilities = AV_CODEC_CAP_DR1,
-    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_INIT_CLEANUP,
+    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
 };

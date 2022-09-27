@@ -415,7 +415,7 @@ static int libdav1d_receive_frame(AVCodecContext *c, AVFrame *frame)
     frame->pkt_dts = p->m.timestamp;
     frame->pkt_pos = p->m.offset;
     frame->pkt_size = p->m.size;
-    frame->pkt_duration = p->m.duration;
+    frame->duration = p->m.duration;
     frame->key_frame = p->frame_hdr->frame_type == DAV1D_FRAME_TYPE_KEY;
 
     switch (p->frame_hdr->frame_type) {
@@ -576,7 +576,7 @@ static const AVClass libdav1d_class = {
 
 const FFCodec ff_libdav1d_decoder = {
     .p.name         = "libdav1d",
-    .p.long_name    = NULL_IF_CONFIG_SMALL("dav1d AV1 decoder by VideoLAN"),
+    CODEC_LONG_NAME("dav1d AV1 decoder by VideoLAN"),
     .p.type         = AVMEDIA_TYPE_VIDEO,
     .p.id           = AV_CODEC_ID_AV1,
     .priv_data_size = sizeof(Libdav1dContext),
@@ -585,7 +585,7 @@ const FFCodec ff_libdav1d_decoder = {
     .flush          = libdav1d_flush,
     FF_CODEC_RECEIVE_FRAME_CB(libdav1d_receive_frame),
     .p.capabilities = AV_CODEC_CAP_DELAY | AV_CODEC_CAP_OTHER_THREADS,
-    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_SETS_PKT_DTS |
+    .caps_internal  = FF_CODEC_CAP_SETS_PKT_DTS |
                       FF_CODEC_CAP_AUTO_THREADS,
     .p.priv_class   = &libdav1d_class,
     .p.wrapper_name = "libdav1d",

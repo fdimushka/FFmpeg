@@ -47,7 +47,7 @@
 #include "libavutil/mem_internal.h"
 
 #include "codec_internal.h"
-#include "internal.h"
+#include "decode.h"
 #include "avcodec.h"
 #include "mpegutils.h"
 #include "h264data.h"
@@ -64,8 +64,6 @@
 #if CONFIG_ZLIB
 #include <zlib.h>
 #endif
-
-#include "svq1.h"
 
 /**
  * @file
@@ -1590,7 +1588,7 @@ static av_cold int svq3_decode_end(AVCodecContext *avctx)
 
 const FFCodec ff_svq3_decoder = {
     .p.name         = "svq3",
-    .p.long_name    = NULL_IF_CONFIG_SMALL("Sorenson Vector Quantizer 3 / Sorenson Video 3 / SVQ3"),
+    CODEC_LONG_NAME("Sorenson Vector Quantizer 3 / Sorenson Video 3 / SVQ3"),
     .p.type         = AVMEDIA_TYPE_VIDEO,
     .p.id           = AV_CODEC_ID_SVQ3,
     .priv_data_size = sizeof(SVQ3Context),
@@ -1602,5 +1600,5 @@ const FFCodec ff_svq3_decoder = {
                       AV_CODEC_CAP_DELAY,
     .p.pix_fmts     = (const enum AVPixelFormat[]) { AV_PIX_FMT_YUVJ420P,
                                                      AV_PIX_FMT_NONE},
-    .caps_internal  = FF_CODEC_CAP_INIT_THREADSAFE | FF_CODEC_CAP_INIT_CLEANUP,
+    .caps_internal  = FF_CODEC_CAP_INIT_CLEANUP,
 };

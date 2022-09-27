@@ -33,7 +33,6 @@
 
 #include <math.h>
 #include <stddef.h>
-#include <stdio.h>
 
 #include "libavutil/channel_layout.h"
 #include "libavutil/mem_internal.h"
@@ -44,7 +43,7 @@
 #include "get_bits.h"
 #include "bytestream.h"
 #include "codec_internal.h"
-#include "internal.h"
+#include "decode.h"
 #include "mpegaudio.h"
 #include "mpegaudiodsp.h"
 #include "rdft.h"
@@ -1871,7 +1870,7 @@ static int qdm2_decode_frame(AVCodecContext *avctx, AVFrame *frame,
 
 const FFCodec ff_qdm2_decoder = {
     .p.name           = "qdm2",
-    .p.long_name      = NULL_IF_CONFIG_SMALL("QDesign Music Codec 2"),
+    CODEC_LONG_NAME("QDesign Music Codec 2"),
     .p.type           = AVMEDIA_TYPE_AUDIO,
     .p.id             = AV_CODEC_ID_QDM2,
     .priv_data_size   = sizeof(QDM2Context),
@@ -1879,5 +1878,4 @@ const FFCodec ff_qdm2_decoder = {
     .close            = qdm2_decode_close,
     FF_CODEC_DECODE_CB(qdm2_decode_frame),
     .p.capabilities   = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_CHANNEL_CONF,
-    .caps_internal    = FF_CODEC_CAP_INIT_THREADSAFE,
 };

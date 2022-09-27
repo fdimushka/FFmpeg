@@ -29,13 +29,11 @@
 #include "float.h"
 
 #include "libavutil/opt.h"
-#include "libavutil/file.h"
-#include "libavutil/intreadwrite.h"
+#include "libavutil/file_open.h"
 #include "libavutil/intfloat.h"
 #include "libavutil/avassert.h"
 #include "libavutil/avstring.h"
 #include "drawutils.h"
-#include "formats.h"
 #include "internal.h"
 #include "video.h"
 #include "lut3d.h"
@@ -1150,9 +1148,9 @@ static int config_input(AVFilterLink *inlink)
         av_assert0(0);
     }
 
-    if (ARCH_X86) {
-        ff_lut3d_init_x86(lut3d, desc);
-    }
+#if ARCH_X86
+    ff_lut3d_init_x86(lut3d, desc);
+#endif
 
     return 0;
 }
@@ -1243,7 +1241,7 @@ static av_cold int lut3d_init(AVFilterContext *ctx)
         return set_identity_matrix(ctx, 32);
     }
 
-    f = av_fopen_utf8(lut3d->file, "r");
+    f = avpriv_fopen_utf8(lut3d->file, "r");
     if (!f) {
         ret = AVERROR(errno);
         av_log(ctx, AV_LOG_ERROR, "%s: %s\n", lut3d->file, av_err2str(ret));
@@ -2134,7 +2132,7 @@ static av_cold int lut1d_init(AVFilterContext *ctx)
         return 0;
     }
 
-    f = av_fopen_utf8(lut1d->file, "r");
+    f = avpriv_fopen_utf8(lut1d->file, "r");
     if (!f) {
         ret = AVERROR(errno);
         av_log(ctx, AV_LOG_ERROR, "%s: %s\n", lut1d->file, av_err2str(ret));

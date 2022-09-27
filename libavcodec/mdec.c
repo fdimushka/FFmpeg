@@ -219,7 +219,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
 
     a->avctx           = avctx;
 
-    ff_blockdsp_init(&a->bdsp, avctx);
+    ff_blockdsp_init(&a->bdsp);
     ff_bswapdsp_init(&a->bbdsp);
     ff_idctdsp_init(&a->idsp, avctx);
     ff_mpeg12_init_vlcs();
@@ -251,7 +251,7 @@ static av_cold int decode_end(AVCodecContext *avctx)
 
 const FFCodec ff_mdec_decoder = {
     .p.name           = "mdec",
-    .p.long_name      = NULL_IF_CONFIG_SMALL("Sony PlayStation MDEC (Motion DECoder)"),
+    CODEC_LONG_NAME("Sony PlayStation MDEC (Motion DECoder)"),
     .p.type           = AVMEDIA_TYPE_VIDEO,
     .p.id             = AV_CODEC_ID_MDEC,
     .priv_data_size   = sizeof(MDECContext),
@@ -259,5 +259,4 @@ const FFCodec ff_mdec_decoder = {
     .close            = decode_end,
     FF_CODEC_DECODE_CB(decode_frame),
     .p.capabilities   = AV_CODEC_CAP_DR1 | AV_CODEC_CAP_FRAME_THREADS,
-    .caps_internal    = FF_CODEC_CAP_INIT_THREADSAFE,
 };
