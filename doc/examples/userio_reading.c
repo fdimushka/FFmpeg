@@ -80,8 +80,6 @@ int main(int argc, char **argv)
         goto end;
     }
 
-
-
     if ((ret = avformat_find_stream_info(ifmt_ctx, 0)) < 0) {
         fprintf(stderr, "Failed to retrieve input stream information");
         goto end;
