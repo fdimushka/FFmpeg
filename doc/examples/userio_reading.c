@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     io_network_context io_ctx;
     AVFormatContext *ifmt_ctx = NULL;
     AVPacket *pkt = NULL;
-    const char *in_filename = "rtsp://HOST:PORT";
+    const char *in_filename = "rtsp://oper:2m9846gUyB@10.1.0.17:554/Streaming/Channels/101";
     AVDictionary *opts = NULL;
     av_dict_set(&opts, "rtsp_transport", "tcp", 0);
     int ret = 0;
@@ -72,8 +72,8 @@ int main(int argc, char **argv)
         goto end;
     }
 
-    ifmt_ctx->open_callback.callback = &open_cb;
-    ifmt_ctx->open_callback.opaque = &io_ctx;
+    ifmt_ctx->find_protocol_callback.callback = &open_cb;
+    ifmt_ctx->find_protocol_callback.opaque = &io_ctx;
 
     if ((ret = avformat_open_input(&ifmt_ctx, in_filename, 0, &opts)) < 0) {
         fprintf(stderr, "Could not open input file '%s'", in_filename);

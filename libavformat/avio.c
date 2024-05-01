@@ -73,8 +73,7 @@ const AVClass ffurl_context_class = {
 
 static int url_alloc_for_protocol(URLContext **puc, const URLProtocol *up,
                                   const char *filename, int flags,
-                                  const AVIOInterruptCB *int_cb,
-                                  const AVIOOpenCB* open_cb)
+                                  const AVIOInterruptCB *int_cb)
 {
     URLContext *uc;
     int err;
@@ -149,9 +148,6 @@ static int url_alloc_for_protocol(URLContext **puc, const URLProtocol *up,
     }
     if (int_cb)
         uc->interrupt_callback = *int_cb;
-
-    if (open_cb)
-        uc->open_callback = *open_cb;
 
     *puc = uc;
     return 0;
@@ -295,26 +291,38 @@ static const struct URLProtocol *url_find_protocol(const char *filename)
 }
 
 int ffurl_alloc(URLContext **puc, const char *filename, int flags,
-                const AVIOInterruptCB *int_cb, const AVIOOpenCB* open_cb)
+                const AVIOInterruptCB *int_cb, const AVIOUrlProtocolCB* proto_cb)
 {
     const URLProtocol *p = NULL;
 
-    p = url_find_protocol(filename);
-    if (p)
-       return url_alloc_for_protocol(puc, p, filename, flags, int_cb, open_cb);
+    if (proto_cb != NULL && proto_cb->find_callback != NULL) {
+        p = proto_cb->find_callback(filename, proto_cb->opaque);
+    }
+
+    if (p == NULL) {
+        p = url_find_protocol(filename);
+    }
+
+    if (p) {
+        int ret = url_alloc_for_protocol(puc, p, filename, flags, int_cb);
+        if (proto_cb != NULL && proto_cb->alloc_callback != NULL) {
+            proto_cb->alloc_callback((*puc)->priv_data, proto_cb->opaque);
+        }
+        return ret;
+    }
 
     *puc = NULL;
     return AVERROR_PROTOCOL_NOT_FOUND;
 }
 
 int ffurl_open_whitelist(URLContext **puc, const char *filename, int flags,
-                         const AVIOInterruptCB *int_cb, const AVIOOpenCB* open_cb, AVDictionary **options,
+                         const AVIOInterruptCB *int_cb, const AVIOUrlProtocolCB* find_cb, AVDictionary **options,
                          const char *whitelist, const char* blacklist,
                          URLContext *parent)
 {
     AVDictionary *tmp_opts = NULL;
     AVDictionaryEntry *e;
-    int ret = ffurl_alloc(puc, filename, flags, int_cb, open_cb);
+    int ret = ffurl_alloc(puc, filename, flags, int_cb, find_cb);
     if (ret < 0)
         return ret;
     if (parent) {

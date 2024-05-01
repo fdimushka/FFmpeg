@@ -1485,7 +1485,7 @@ typedef struct AVFormatContext {
     AVIOInterruptCB interrupt_callback;
 
 
-    AVIOOpenCB open_callback;
+    AVIOUrlProtocolCB find_protocol_callback;
 
     /**
      * Flags to enable debugging.

@@ -3,6 +3,7 @@ DESC = FFmpeg container format library
 
 HEADERS = avformat.h                                                    \
           avio.h                                                        \
+          url.h                                                         \
           version.h                                                     \
           version_major.h                                               \
 

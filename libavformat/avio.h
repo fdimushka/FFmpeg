@@ -79,10 +79,12 @@ typedef struct AVIONetAdapter {
  * Callback to notify user about a new network connection.
  * User can initialize adapter for replace network r/w syscall to custom network methods for current AVFormatContext.
  */
-typedef struct AVIOOpenCB {
-    void (*callback)(int fd, AVIONetAdapter *adapter, void *opaque);
+typedef struct AVIOUrlProtocolCB {
+    const struct URLProtocol * (*find_callback)(const char* filename, void *opaque);
+    void (*alloc_callback)(void *context, void *opaque);
+    void (*free_callback)(void *context, void *opaque);
     void *opaque;
-} AVIOOpenCB;
+} AVIOUrlProtocolCB;
 
 
 

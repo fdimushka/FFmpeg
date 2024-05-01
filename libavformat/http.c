@@ -264,7 +264,7 @@ static int http_open_cnx_internal(URLContext *h, AVDictionary **options)
 
     if (!s->hd) {
         err = ffurl_open_whitelist(&s->hd, buf, AVIO_FLAG_READ_WRITE,
-                                   &h->interrupt_callback, &h->open_callback, options,
+                                   &h->interrupt_callback, &h->find_protocol_callback, options,
                                    h->protocol_whitelist, h->protocol_blacklist, h);
     }
 
@@ -663,7 +663,7 @@ static int http_listen(URLContext *h, const char *uri, int flags,
     if ((ret = av_dict_set_int(options, "listen", s->listen, 0)) < 0)
         goto fail;
     if ((ret = ffurl_open_whitelist(&s->hd, lower_url, AVIO_FLAG_READ_WRITE,
-                                    &h->interrupt_callback, &h->open_callback, options,
+                                    &h->interrupt_callback, &h->find_protocol_callback, options,
                                     h->protocol_whitelist, h->protocol_blacklist, h
                                    )) < 0)
         goto fail;
@@ -740,7 +740,7 @@ static int http_accept(URLContext *s, URLContext **c)
     URLContext *cl = NULL;
 
     av_assert0(sc->listen);
-    if ((ret = ffurl_alloc(c, s->filename, s->flags, &sl->interrupt_callback, &sl->open_callback)) < 0)
+    if ((ret = ffurl_alloc(c, s->filename, s->flags, &sl->interrupt_callback, &sl->find_protocol_callback)) < 0)
         goto fail;
     cc = (*c)->priv_data;
     if ((ret = ffurl_accept(sl, &cl)) < 0)
@@ -2067,7 +2067,7 @@ static int http_proxy_open(URLContext *h, const char *uri, int flags)
                 NULL);
 redo:
     ret = ffurl_open_whitelist(&s->hd, lower_url, AVIO_FLAG_READ_WRITE,
-                               &h->interrupt_callback, &h->open_callback, NULL,
+                               &h->interrupt_callback, &h->find_protocol_callback, NULL,
                                h->protocol_whitelist, h->protocol_blacklist, h);
     if (ret < 0)
         return ret;

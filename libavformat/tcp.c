@@ -42,7 +42,6 @@ typedef struct TCPContext {
     int recv_buffer_size;
     int send_buffer_size;
     int tcp_nodelay;
-    void *handler;
 #if !HAVE_WINSOCK2_H
     int tcp_mss;
 #endif /* !HAVE_WINSOCK2_H */
@@ -52,25 +51,24 @@ typedef struct TCPContext {
 #define D AV_OPT_FLAG_DECODING_PARAM
 #define E AV_OPT_FLAG_ENCODING_PARAM
 static const AVOption options[] = {
-    { "listen",          "Listen for incoming connections",  OFFSET(listen),         AV_OPT_TYPE_INT, { .i64 = 0 },     0,       2,       .flags = D|E },
-    { "timeout",     "set timeout (in microseconds) of socket I/O operations", OFFSET(rw_timeout),     AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
-    { "listen_timeout",  "Connection awaiting timeout (in milliseconds)",      OFFSET(listen_timeout), AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
-    { "send_buffer_size", "Socket send buffer size (in bytes)",                OFFSET(send_buffer_size), AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
-    { "recv_buffer_size", "Socket receive buffer size (in bytes)",             OFFSET(recv_buffer_size), AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
-    { "tcp_nodelay", "Use TCP_NODELAY to disable nagle's algorithm",           OFFSET(tcp_nodelay), AV_OPT_TYPE_BOOL, { .i64 = 0 },             0, 1, .flags = D|E },
+        { "listen",          "Listen for incoming connections",  OFFSET(listen),         AV_OPT_TYPE_INT, { .i64 = 0 },     0,       2,       .flags = D|E },
+        { "timeout",     "set timeout (in microseconds) of socket I/O operations", OFFSET(rw_timeout),     AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
+        { "listen_timeout",  "Connection awaiting timeout (in milliseconds)",      OFFSET(listen_timeout), AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
+        { "send_buffer_size", "Socket send buffer size (in bytes)",                OFFSET(send_buffer_size), AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
+        { "recv_buffer_size", "Socket receive buffer size (in bytes)",             OFFSET(recv_buffer_size), AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
+        { "tcp_nodelay", "Use TCP_NODELAY to disable nagle's algorithm",           OFFSET(tcp_nodelay), AV_OPT_TYPE_BOOL, { .i64 = 0 },             0, 1, .flags = D|E },
 #if !HAVE_WINSOCK2_H
-    { "tcp_mss",     "Maximum segment size for outgoing TCP packets",          OFFSET(tcp_mss),     AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
+        { "tcp_mss",     "Maximum segment size for outgoing TCP packets",          OFFSET(tcp_mss),     AV_OPT_TYPE_INT, { .i64 = -1 },         -1, INT_MAX, .flags = D|E },
 #endif /* !HAVE_WINSOCK2_H */
-    { NULL }
+        { NULL }
 };
 
 static const AVClass tcp_class = {
-    .class_name = "tcp",
-    .item_name  = av_default_item_name,
-    .option     = options,
-    .version    = LIBAVUTIL_VERSION_INT,
+        .class_name = "tcp",
+        .item_name  = av_default_item_name,
+        .option     = options,
+        .version    = LIBAVUTIL_VERSION_INT,
 };
-
 
 static void customize_fd(void *ctx, int fd)
 {
@@ -101,15 +99,6 @@ static void customize_fd(void *ctx, int fd)
 #endif /* !HAVE_WINSOCK2_H */
 }
 
-
-static void open_user_io(const TCPContext *ctx, AVIONetAdapter *adapter, const AVIOOpenCB* open_cb)
-{
-    avio_init_net_adapter(adapter, NULL, NULL, NULL);
-    if (open_cb && open_cb->callback)
-        open_cb->callback(ctx->fd, adapter, open_cb->opaque);
-};
-
-
 /* return non zero if error */
 static int tcp_open(URLContext *h, const char *uri, int flags)
 {
@@ -124,7 +113,7 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     s->open_timeout = 5000000;
 
     av_url_split(proto, sizeof(proto), NULL, 0, hostname, sizeof(hostname),
-        &port, path, sizeof(path), uri);
+                 &port, path, sizeof(path), uri);
     if (strcmp(proto, "tcp"))
         return AVERROR(EINVAL);
     if (port <= 0 || port >= 65536) {
@@ -217,12 +206,10 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     h->is_streamed = 1;
     s->fd = fd;
 
-    open_user_io(s, &h->io_adapter, &h->open_callback);
-
     freeaddrinfo(ai);
     return 0;
 
- fail1:
+    fail1:
     if (fd >= 0)
         closesocket(fd);
     freeaddrinfo(ai);
@@ -235,7 +222,7 @@ static int tcp_accept(URLContext *s, URLContext **c)
     TCPContext *cc;
     int ret;
     av_assert0(sc->listen);
-    if ((ret = ffurl_alloc(c, s->filename, s->flags, &s->interrupt_callback, &s->open_callback)) < 0)
+    if ((ret = ffurl_alloc(c, s->filename, s->flags, &s->interrupt_callback, &s->find_protocol_callback)) < 0)
         return ret;
     cc = (*c)->priv_data;
     ret = ff_accept(sc->fd, sc->listen_timeout, s);
@@ -252,19 +239,14 @@ static int tcp_read(URLContext *h, uint8_t *buf, int size)
     TCPContext *s = h->priv_data;
     int ret;
 
-    if(!h->io_adapter.recv) {
-        if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
-            ret = ff_network_wait_fd_timeout(s->fd, 0, h->rw_timeout, &h->interrupt_callback);
-            if (ret)
-                return ret;
-        }
+    if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
+        ret = ff_network_wait_fd_timeout(s->fd, 0, h->rw_timeout, &h->interrupt_callback);
+        if (ret)
+            return ret;
     }
-
-    ret = ff_recv(h, s->fd, buf, size, 0);
-
+    ret = recv(s->fd, buf, size, 0);
     if (ret == 0)
         return AVERROR_EOF;
-
     return ret < 0 ? ff_neterrno() : ret;
 }
 
@@ -273,17 +255,12 @@ static int tcp_write(URLContext *h, const uint8_t *buf, int size)
     TCPContext *s = h->priv_data;
     int ret;
 
-    if(!h->io_adapter.send) {
-        if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
-            ret = ff_network_wait_fd_timeout(s->fd, 1, h->rw_timeout, &h->interrupt_callback);
-            if (ret)
-                return ret;
-        }
+    if (!(h->flags & AVIO_FLAG_NONBLOCK)) {
+        ret = ff_network_wait_fd_timeout(s->fd, 1, h->rw_timeout, &h->interrupt_callback);
+        if (ret)
+            return ret;
     }
-    //ret = send(s->fd, buf, size, MSG_NOSIGNAL);
-
-    ret = ff_send(h, s->fd, buf, size, MSG_NOSIGNAL);
-
+    ret = send(s->fd, buf, size, MSG_NOSIGNAL);
     return ret < 0 ? ff_neterrno() : ret;
 }
 
@@ -306,7 +283,7 @@ static int tcp_shutdown(URLContext *h, int flags)
 static int tcp_close(URLContext *h)
 {
     TCPContext *s = h->priv_data;
-    ff_close(h, s->fd);
+    closesocket(s->fd);
     return 0;
 }
 
@@ -337,16 +314,16 @@ static int tcp_get_window_size(URLContext *h)
 }
 
 const URLProtocol ff_tcp_protocol = {
-    .name                = "tcp",
-    .url_open            = tcp_open,
-    .url_accept          = tcp_accept,
-    .url_read            = tcp_read,
-    .url_write           = tcp_write,
-    .url_close           = tcp_close,
-    .url_get_file_handle = tcp_get_file_handle,
-    .url_get_short_seek  = tcp_get_window_size,
-    .url_shutdown        = tcp_shutdown,
-    .priv_data_size      = sizeof(TCPContext),
-    .flags               = URL_PROTOCOL_FLAG_NETWORK,
-    .priv_data_class     = &tcp_class,
+        .name                = "tcp",
+        .url_open            = tcp_open,
+        .url_accept          = tcp_accept,
+        .url_read            = tcp_read,
+        .url_write           = tcp_write,
+        .url_close           = tcp_close,
+        .url_get_file_handle = tcp_get_file_handle,
+        .url_get_short_seek  = tcp_get_window_size,
+        .url_shutdown        = tcp_shutdown,
+        .priv_data_size      = sizeof(TCPContext),
+        .flags               = URL_PROTOCOL_FLAG_NETWORK,
+        .priv_data_class     = &tcp_class,
 };

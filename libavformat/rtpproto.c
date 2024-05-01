@@ -327,7 +327,7 @@ static int rtp_open(URLContext *h, const char *uri, int flags)
         build_udp_url(s, buf, sizeof(buf),
                       hostname, s->localaddr, rtp_port, s->local_rtpport,
                       sources, block);
-        if (ffurl_open_whitelist(&s->rtp_hd, buf, flags, &h->interrupt_callback, &h->open_callback,
+        if (ffurl_open_whitelist(&s->rtp_hd, buf, flags, &h->interrupt_callback, &h->find_protocol_callback,
                                  NULL, h->protocol_whitelist, h->protocol_blacklist, h) < 0)
             goto fail;
         s->local_rtpport = ff_udp_get_local_port(s->rtp_hd);
@@ -342,7 +342,7 @@ static int rtp_open(URLContext *h, const char *uri, int flags)
                           hostname, s->localaddr, s->rtcp_port, s->local_rtcpport,
                           sources, block);
             if (ffurl_open_whitelist(&s->rtcp_hd, buf, rtcpflags,
-                                     &h->interrupt_callback, &h->open_callback, NULL,
+                                     &h->interrupt_callback, &h->find_protocol_callback, NULL,
                                      h->protocol_whitelist, h->protocol_blacklist, h) < 0) {
                 s->local_rtpport = s->local_rtcpport = -1;
                 continue;
@@ -352,7 +352,7 @@ static int rtp_open(URLContext *h, const char *uri, int flags)
         build_udp_url(s, buf, sizeof(buf),
                       hostname, s->localaddr, s->rtcp_port, s->local_rtcpport,
                       sources, block);
-        if (ffurl_open_whitelist(&s->rtcp_hd, buf, rtcpflags, &h->interrupt_callback, &h->open_callback,
+        if (ffurl_open_whitelist(&s->rtcp_hd, buf, rtcpflags, &h->interrupt_callback, &h->find_protocol_callback,
                                  NULL, h->protocol_whitelist, h->protocol_blacklist, h) < 0)
             goto fail;
         break;
@@ -361,7 +361,7 @@ static int rtp_open(URLContext *h, const char *uri, int flags)
     s->fec_hd = NULL;
     if (fec_protocol) {
         ff_url_join(buf, sizeof(buf), fec_protocol, NULL, hostname, rtp_port, NULL);
-        if (ffurl_open_whitelist(&s->fec_hd, buf, flags, &h->interrupt_callback, &h->open_callback,
+        if (ffurl_open_whitelist(&s->fec_hd, buf, flags, &h->interrupt_callback, &h->find_protocol_callback,
                              &fec_opts, h->protocol_whitelist, h->protocol_blacklist, h) < 0)
             goto fail;
     }

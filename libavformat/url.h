@@ -45,7 +45,7 @@ typedef struct URLContext {
     int is_connected;
     AVIOInterruptCB interrupt_callback;
     AVIONetAdapter io_adapter;
-    AVIOOpenCB open_callback;
+    AVIOUrlProtocolCB find_protocol_callback;
     int64_t rw_timeout;         /**< maximum time to wait for (network) read/write operation completion, in mcs */
     const char *protocol_whitelist;
     const char *protocol_blacklist;
@@ -114,7 +114,7 @@ typedef struct URLProtocol {
  * AVERROR code in case of failure
  */
 int ffurl_alloc(URLContext **puc, const char *filename, int flags,
-                const AVIOInterruptCB *int_cb, const AVIOOpenCB* open_cb);
+                const AVIOInterruptCB *int_cb, const AVIOUrlProtocolCB* find_cb);
 
 /**
  * Connect an URLContext that has been allocated by ffurl_alloc
@@ -145,7 +145,7 @@ int ffurl_connect(URLContext *uc, AVDictionary **options);
  * AVERROR code in case of failure
  */
 int ffurl_open_whitelist(URLContext **puc, const char *filename, int flags,
-               const AVIOInterruptCB *int_cb, const AVIOOpenCB* open_cb, AVDictionary **options,
+               const AVIOInterruptCB *int_cb, const AVIOUrlProtocolCB* find_cb, AVDictionary **options,
                const char *whitelist, const char* blacklist,
                URLContext *parent);
 

@@ -295,11 +295,11 @@ static int prompeg_open(URLContext *h, const char *uri, int flags) {
     }
 
     ff_url_join(buf, sizeof (buf), "udp", NULL, hostname, rtp_port + 2, NULL);
-    if (ffurl_open_whitelist(&s->fec_col_hd, buf, flags, &h->interrupt_callback, &h->open_callback,
+    if (ffurl_open_whitelist(&s->fec_col_hd, buf, flags, &h->interrupt_callback, &h->find_protocol_callback,
             &udp_opts, h->protocol_whitelist, h->protocol_blacklist, h) < 0)
         goto fail;
     ff_url_join(buf, sizeof (buf), "udp", NULL, hostname, rtp_port + 4, NULL);
-    if (ffurl_open_whitelist(&s->fec_row_hd, buf, flags, &h->interrupt_callback, &h->open_callback,
+    if (ffurl_open_whitelist(&s->fec_row_hd, buf, flags, &h->interrupt_callback, &h->find_protocol_callback,
             &udp_opts, h->protocol_whitelist, h->protocol_blacklist, h) < 0)
         goto fail;
 

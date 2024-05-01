@@ -112,7 +112,7 @@ static int tee_open(URLContext *h, const char *filename, int flags)
             goto loop_fail;
 
         ret = ffurl_open_whitelist(&c->child[c->child_count].url_context, child_name, flags,
-                                   &h->interrupt_callback, &h->open_callback, &options,
+                                   &h->interrupt_callback, &h->find_protocol_callback, &options,
                                    h->protocol_whitelist, h->protocol_blacklist,
                                    h);
 loop_fail:

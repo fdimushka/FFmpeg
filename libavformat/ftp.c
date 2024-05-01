@@ -575,7 +575,7 @@ static int ftp_connect_control_connection(URLContext *h)
             av_dict_set_int(&opts, "timeout", s->rw_timeout, 0);
         } /* if option is not given, don't pass it and let tcp use its own default */
         err = ffurl_open_whitelist(&s->conn_control, buf, AVIO_FLAG_READ_WRITE,
-                                   &h->interrupt_callback, &h->open_callback, &opts,
+                                   &h->interrupt_callback, &h->find_protocol_callback, &opts,
                                    h->protocol_whitelist, h->protocol_blacklist, h);
         av_dict_free(&opts);
         if (err < 0) {
@@ -629,7 +629,7 @@ static int ftp_connect_data_connection(URLContext *h)
             av_dict_set_int(&opts, "timeout", s->rw_timeout, 0);
         } /* if option is not given, don't pass it and let tcp use its own default */
         err = ffurl_open_whitelist(&s->conn_data, buf, h->flags,
-                                   &h->interrupt_callback, &h->open_callback, &opts,
+                                   &h->interrupt_callback, &h->find_protocol_callback, &opts,
                                    h->protocol_whitelist, h->protocol_blacklist, h);
         av_dict_free(&opts);
         if (err < 0)
